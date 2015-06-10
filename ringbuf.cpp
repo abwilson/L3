@@ -19,14 +19,15 @@ namespace L3 // Low Latency Library
     using Sequence = std::atomic_size_t;
 //    using Sequence = size_t;
     
-    size_t putSpinCount = 0;
-    size_t getSpinCount = 0;
-    size_t cursorSpinCount = 0;
+    CACHE_LINE size_t putSpinCount = 0;
+    CACHE_LINE size_t getSpinCount = 0;
+    CACHE_LINE size_t cursorSpinCount = 0;
 
     template<typename T, char log2size>
     class Disruptor: private Ring<T, log2size>
     {
         using Base = Ring<T, log2size>;
+        static_assert(log2size > 0, "Minimun ring size is 2");
     public:
         using Base::size;
         typedef T value_type;
@@ -69,9 +70,9 @@ namespace L3 // Low Latency Library
             operator T&() const              { return _dr[_slot]; }
         protected:
             Disruptor& _dr;
-            size_t _slot;
+            Index _slot;
 
-            size_t nextSlot()
+            Index nextSlot()
             {
                 //
                 // Spin while we have caught up with consumer.
@@ -115,11 +116,11 @@ namespace L3 // Low Latency Library
 
         protected:
             Disruptor& _dr;
-            size_t     _slot;
+            Index     _slot;
 
             Index nextSlot()
             {
-                size_t slot = _dr._tail.load(std::memory_order_acquire);
+                Index slot = _dr._tail.load(std::memory_order_acquire);
                 while(slot > _dr._cursor.load(std::memory_order_acquire))
                 {
                     getSpinCount++;
@@ -149,7 +150,7 @@ constexpr size_t iterations = 100000000; // 100 Million.
 std::array<size_t, iterations> msgs;
 
 using namespace L3;
-using DR = Disruptor<size_t, 10>;
+using DR = Disruptor<size_t, 21>;
 DR buf;
 
 int main()
