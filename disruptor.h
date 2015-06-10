@@ -30,10 +30,9 @@ namespace L3 // Low Latency Library
         static_assert(log2size > 0, "Minimun ring size is 2");
     public:
         using Base::size;
-        typedef T value_type;
-        typedef typename Base::Index Index;
+        using value_type = T;
+        using Index = typename Base::Index;
         using Sequence = std::atomic<Index>;
-//    using Sequence = size_t;
 
         Disruptor():
             Base(),
@@ -73,7 +72,7 @@ namespace L3 // Low Latency Library
                 // care about memory order because only this thread
                 // can write to _head.
                 //
-                Index slot = _dr._head.fetch_add(1, std::memory_order_relaxed);
+                Index slot = _dr._head.fetch_add(1, std::memory_order_acquire);
                 //
                 // We have our slot but we cannot write to it until we
                 // are sure we will not overwrite data that has not
@@ -127,7 +126,7 @@ namespace L3 // Low Latency Library
                 // For single producer no other thread could have
                 // commited puts. so don't need this code.
                 //
-#if 0
+#if 1
                 while(_dr._cursor.load(std::memory_order_acquire) < _slot - 1)
                 {
                     CursorSpinProbe()();
