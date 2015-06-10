@@ -9,7 +9,7 @@ valgrind = $(valgrind_home)/bin/valgrind
 
 
 CPPFLAGS = -I $(valgrind_home)/include
-CXXFLAGS = -O3 --std=c++11
+CXXFLAGS = -g -O3 --std=c++11
 CXX = clang++ 
 
 
@@ -22,10 +22,12 @@ $(execs):
 clean:
 	- rm -f $(execs) $(objs)
 
-%.run: %
+.PHONY: force_run
+
+%.run: % force_run
 	./$<
 
-%.time: %
+%.time: % force_run
 	bash -c "time ./$<"
 
 %.valgrind: %
