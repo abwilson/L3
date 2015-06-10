@@ -3,21 +3,21 @@ srcs.c		:= $(wildcard *.c)
 objs		:= $(srcs.cpp:%.cpp=%.o) $(srcs.c:%.c=%.o)
 execs		:= $(srcs.cpp:%.cpp=%)   $(srcs.c:%.cpp=%)
 
-
 valgrind_home = /opt/valgrind-svn
 valgrind = $(valgrind_home)/bin/valgrind
 
-
 CPPFLAGS = -I $(valgrind_home)/include
-CXXFLAGS = -g -O3 --std=c++11
-CXX = clang++ 
+CXXFLAGS = -g -O3 --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@
+CXX = clang++
+
 
 
 rapidjson = rapidjson/include
 
 all: $(execs)
 
-$(execs):
+$(execs): %: %.o
+	$(LINK.cc) $^ -o $@
 
 clean:
 	- rm -f $(execs) $(objs)
@@ -32,3 +32,5 @@ clean:
 
 %.valgrind: %
 	$(valgrind) --tool=callgrind --instr-atstart=no ./$<
+
+-include *.d

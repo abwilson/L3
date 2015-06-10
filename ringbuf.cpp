@@ -1,157 +1,38 @@
-#include "ring.h"
-//#include "allocator.h"
+#include "disruptor.h"
 
 #include <array>
-#include <atomic>
 #include <iostream>
 #include <thread>
 
-#ifndef CACHE_LINE_SIZE
-#define CACHE_LINE_SIZE 64
-#endif
+using namespace L3;
 
-#define CACHE_LINE alignas(cache_line_size)
-//#define CACHE_LINE
+L3_CACHE_LINE size_t putSpinCount = 0;
+L3_CACHE_LINE size_t getSpinCount = 0;
+L3_CACHE_LINE size_t cursorSpinCount = 0;
 
-namespace L3 // Low Latency Library
+template<size_t& counter>
+struct Counter
 {
-    static constexpr size_t cache_line_size = CACHE_LINE_SIZE;
-    using Sequence = std::atomic_size_t;
-//    using Sequence = size_t;
-    
-    CACHE_LINE size_t putSpinCount = 0;
-    CACHE_LINE size_t getSpinCount = 0;
-    CACHE_LINE size_t cursorSpinCount = 0;
+    void operator()() { ++counter; }
+};
 
-    template<typename T, char log2size>
-    class Disruptor: private Ring<T, log2size>
-    {
-        using Base = Ring<T, log2size>;
-        static_assert(log2size > 0, "Minimun ring size is 2");
-    public:
-        using Base::size;
-        typedef T value_type;
-        typedef typename Base::Index Index;
+using PutSpinCounter = Counter<putSpinCount>;
+using GettSpinCounter = Counter<getSpinCount>;
+using CursorSpinCounter = Counter<cursorSpinCount>;
 
-        Disruptor():
-            Base(),
-            //
-            // The next put position.
-            //
-            _head{size + 1},
-            //
-            // The next get.
-            //
-            _tail{size + 1},
-            //
-            // The latest commited put.
-            //
-            _cursor{size}
-            //
-            // To prevent _head catching up with _tail we must ensure
-            //
-            //     _head - size < _tail
-            //
-            // To make this check we have to subtract size from _head,
-            // but Index is unsigned. So start all the counters off at
-            // size so we know this difference will always be
-            // positive.
-            //
-        {}
+typedef size_t Msg;
 
-        friend class Put;
-        class Put
-        {
-        public:
-            Put(Disruptor& d): _dr(d), _slot(nextSlot()) {}
-            ~Put() { commit(); }
-
-            T& operator=(const T& rhs) const { return _dr[_slot] = rhs; }
-            operator T&() const              { return _dr[_slot]; }
-        protected:
-            Disruptor& _dr;
-            Index _slot;
-
-            Index nextSlot()
-            {
-                //
-                // Spin while we have caught up with consumer.
-                //
-                Index hd = _dr._head.load(std::memory_order_relaxed);
-                Index wrapAt = hd - size;
-                while(_dr._tail.load(std::memory_order_acquire) <= wrapAt)
-                {
-                    putSpinCount++;
-                }
-                return _dr._head.fetch_add(1, std::memory_order_release);
-            }
-
-            void commit()
-            {
-                while(_dr._cursor.load(std::memory_order_acquire) < _slot - 1)
-                {
-                    cursorSpinCount++;
-                }
-                //
-                // No need to CAS. Only we could have been waiting for
-                // this cursor value.
-                //
-                _dr._cursor.fetch_add(1, std::memory_order_release);
-            }
-        };
-
-        void put(const T& rhs)
-        {
-            Put(*this) = rhs;
-        }
-
-        friend class Get;
-        class Get
-        {
-        public:
-            Get(Disruptor& d): _dr(d), _slot(nextSlot()) {}
-            ~Get() { commit(); }
-
-            operator const T&() const { return _dr[_slot]; }
-
-        protected:
-            Disruptor& _dr;
-            Index     _slot;
-
-            Index nextSlot()
-            {
-                Index slot = _dr._tail.load(std::memory_order_acquire);
-                while(slot > _dr._cursor.load(std::memory_order_acquire))
-                {
-                    getSpinCount++;
-                }
-                return slot;
-            }
-
-            void commit()
-            {
-                _dr._tail.fetch_add(1, std::memory_order_release);
-            }
-        };
-
-        T get()
-        {
-            return Get(*this);
-        }
-            
-    protected:
-        CACHE_LINE Sequence _head;
-        CACHE_LINE Sequence _tail;
-        CACHE_LINE Sequence _cursor;
-    };
-}
+using DR = Disruptor<
+    Ring<Msg, 18>,
+    PutSpinCounter,
+    GettSpinCounter,
+    CursorSpinCounter>;
+DR buf;
 
 constexpr size_t iterations = 100000000; // 100 Million.
-std::array<size_t, iterations> msgs;
 
-using namespace L3;
-using DR = Disruptor<size_t, 21>;
-DR buf;
+std::array<Msg, iterations> msgs;
+
 
 int main()
 {
@@ -162,7 +43,7 @@ int main()
     std::thread producer(
         [&](){
 //            while(!go);
-            for(size_t i = 1; i < iterations; i++)
+            for(Msg i = 1; i < iterations; i++)
             {
                 buf.put(i);
             }
@@ -172,10 +53,10 @@ int main()
     std::thread consumer(
         [&](){
 //            while(!go);
-            size_t previous = buf.get();
+            Msg previous = buf.get();
             for(size_t i = 1; i < iterations - 1; ++i)
             {
-                size_t msg = buf.get();
+                Msg msg = buf.get();
                 msgs[i] = msg;
                 long diff = (msg - previous) - 1;
                 result += (diff * diff);
@@ -196,7 +77,7 @@ int main()
     std::cout << "getSpinCount = " << getSpinCount << std::endl; 
     std::cout << "cursorSpinCount = " << cursorSpinCount << std::endl;
 
-    size_t previous = 0;
+    Msg previous = 0;
     bool status = true;
     for(auto i: msgs)
     {
@@ -215,6 +96,6 @@ int main()
     // std::copy(
     //     msgs.begin(),
     //     msgs.end(),
-    //     std::ostream_iterator<size_t>(std::cout, "\n"));
+    //     std::ostream_iterator<Msg>(std::cout, "\n"));
     return status ? 0 : 1;
 }
