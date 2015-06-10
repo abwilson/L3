@@ -163,14 +163,7 @@ int main()
 //            while(!go);
             for(size_t i = 1; i < iterations; i++)
             {
-                {
-#if 0
-                    DR::Put p(buf);
-                    p = i;
-#else
-                    buf.put(i);
-#endif
-                }
+                buf.put(i);
             }
             std::cerr << "Prod done" << std::endl;
         });
