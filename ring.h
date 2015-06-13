@@ -1,11 +1,13 @@
 #ifndef RING_H
 #define RING_H
 
-#include <type_traits>
+#include <atomic>
 #include <cstdint>
+#include <type_traits>
 
-namespace L3
+namespace L3 // Low Latency Library
 {
+    using Index = uint64_t;
     /**
      * A buffer of Ts indexed in a circular manner using
      *
@@ -28,21 +30,11 @@ namespace L3
     class Ring
     {
         static_assert(log2size < 32, "Unreasonable RingBuf size.");
-        //
-        // In the implementation of a disruptor there's a window
-        // between a slot has been claimed and the cursor advanced
-        // where the value must be copied into the ring buffer. If
-        // this operation fails and the cursor is not advanced then
-        // the whole system will block. To ensure the value copy
-        // cannot fail constrain T to being a POD.
-        //
-        static_assert(std::is_pod<T>::value, "PODs only");        
     public:
         //
         // With a 64 bit index we could use values at a rate of 4GHz
         // for 136 years before worrying about wrapping.
         //
-        using Index = uint64_t;
         using value_type = T;
         static constexpr Index size = 1L << log2size;
 
@@ -54,20 +46,23 @@ namespace L3
             // Circularise indexing by using (idx mod size)
             // implemented by masking off the high order bits.
             //
+            static constexpr Index _mask = size - 1;
             return _storage[idx & _mask];
         }
-
-        template<Ring& ring>
+        //
+        // An index typed on the ring instance it came from.
+        //
+        template<Ring& r>
         struct Idx
         {
-            T& operator*() const { return ring[_index]; }
-            T* operator->() const { return &ring[_index]; }
+            static constexpr Ring& _ring = r;
+            T& operator*() const { return _ring[_index]; }
+            T* operator->() const { return &_ring[_index]; }
             
             size_t _index;
         };
 
     protected:
-        static constexpr Index _mask = size - 1;
         T _storage[size];
     };
 }

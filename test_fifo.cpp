@@ -1,7 +1,4 @@
-#include "consumer.h"
-#include "disruptor.h"
-#include "producer.h"
-#include "util.h"
+#include "fifo.h"
 
 #include <array>
 #include <iostream>
@@ -13,27 +10,25 @@ L3_CACHE_LINE size_t putSpinCount = 0;
 L3_CACHE_LINE size_t getSpinCount = 0;
 L3_CACHE_LINE size_t cursorSpinCount = 0;
 
+template<size_t& counter>
+struct Counter
+{
+    void operator()() { ++counter; }
+};
+
 using PutSpinCounter = Counter<putSpinCount>;
-using GettSpinCounter = Counter<getSpinCount>;
+using GetSpinCounter = Counter<getSpinCount>;
 using CursorSpinCounter = Counter<cursorSpinCount>;
 
 typedef size_t Msg;
 
-using Dstor = Disruptor<Msg, 10>;
+using DR = Fifo<Msg, 8>;
+using PUT = DR::Put<PutSpinCounter, CursorSpinCounter>;
+using GET = DR::Get<GetSpinCounter>;
 
-Dstor dstor;
+DR buf;
 
-using Consumer = ConsumerT<Dstor, dstor>;
-
-Consumer c1;
-Consumer c2;
-
-using Producer = ProducerT<Dstor, dstor, ConsumerList<Consumer, c1, c2>>;
-Producer producer;
-
-using PUT = Producer::Put<PutSpinCounter, CursorSpinCounter>;
-
-constexpr size_t iterations = 10;//0000000; // 100 Million.
+constexpr size_t iterations = 10000;//0000; // 100 Million.
 
 std::array<Msg, iterations> msgs;
 
@@ -43,12 +38,12 @@ bool testSingleProducerSingleConsumer()
 
 //    std::atomic<bool> go { false };
 
-    std::thread prod1(
+    std::thread producer(
         [&](){
 //            while(!go);
             for(Msg i = 1; i < iterations; i++)
             {
-                PUT p(producer);
+                PUT p(buf);
                 p = i;
             }
             std::cerr << "Prod done" << std::endl;
@@ -60,7 +55,10 @@ bool testSingleProducerSingleConsumer()
             Msg previous = buf.get();
             for(size_t i = 1; i < iterations - 1; ++i)
             {
-                Msg msg = buf.get();
+                Msg msg;
+                {
+                    msg = GET(buf);
+                }
                 msgs[i] = msg;
                 long diff = (msg - previous) - 1;
                 result += (diff * diff);
@@ -71,7 +69,7 @@ bool testSingleProducerSingleConsumer()
 
 //    go = true;
 
-    prod1.join();
+    producer.join();
     consumer.join();
 
     std::cout << "result: " << result << std::endl;
@@ -115,7 +113,8 @@ bool testTwoProducerSingleConsumer()
             while(!go);
             for(Msg i = 3; i < iterations; i += 2)
             {
-                buf.put(i);
+                PUT p(buf);
+                p = i;
             }
             std::cerr << "Prod 1 done" << std::endl;
         });
@@ -125,17 +124,13 @@ bool testTwoProducerSingleConsumer()
             while(!go);
             for(Msg i = 2; i < iterations; i += 2)
             {
-                buf.put(i);
+                PUT p(buf);
+                p = i;
             }
             std::cerr << "Prod 2 done" << std::endl;
         });
     
 
-    auto oddOrEven = [](const Msg& m, Msg& odd, Msg& even) -> Msg&
-    {
-        return m & 0x1L ? odd : even;
-    };
-    
     std::thread consumer(
         [&](){
             while(!go);
@@ -143,7 +138,10 @@ bool testTwoProducerSingleConsumer()
             Msg oldEven = 0;
             for(size_t i = 1; i < iterations - 5; ++i)
             {
-                Msg msg = buf.get();
+                Msg msg;
+                {
+                    msg = GET(buf);
+                }
 
                 Msg& old = msg & 0x1L ? oldOdd : oldEven;
 
