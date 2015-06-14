@@ -13,27 +13,33 @@ L3_CACHE_LINE size_t putSpinCount = 0;
 L3_CACHE_LINE size_t getSpinCount = 0;
 L3_CACHE_LINE size_t cursorSpinCount = 0;
 
+auto putSpinCounter = [&](){ ++putSpinCount; };
+
 using PutSpinCounter = Counter<putSpinCount>;
-using GettSpinCounter = Counter<getSpinCount>;
+using GetSpinCounter = Counter<getSpinCount>;
 using CursorSpinCounter = Counter<cursorSpinCount>;
 
 typedef size_t Msg;
 
-using Dstor = Disruptor<Msg, 10>;
+using Disruptor = DisruptorT<Msg, 4>;
 
-Dstor dstor;
+Disruptor disruptor;
 
-using Consumer = ConsumerT<Dstor, dstor>;
+using Consumer = ConsumerT<Disruptor, disruptor>;
 
 Consumer c1;
-Consumer c2;
+//Consumer c2;
 
-using Producer = ProducerT<Dstor, dstor, ConsumerList<Consumer, c1, c2>>;
+using Producer = ProducerT<
+    Disruptor, disruptor,
+    ConsumerList<Consumer, c1>,
+    ProducerType::Single>;
 Producer producer;
 
 using PUT = Producer::Put<PutSpinCounter, CursorSpinCounter>;
+using GET = Consumer::Get<GetSpinCounter>;
 
-constexpr size_t iterations = 10;//0000000; // 100 Million.
+constexpr size_t iterations = 100000000; // 100 Million.
 
 std::array<Msg, iterations> msgs;
 
@@ -57,10 +63,19 @@ bool testSingleProducerSingleConsumer()
     std::thread consumer(
         [&](){
 //            while(!go);
-            Msg previous = buf.get();
+            Msg previous;
+            {
+                GET g(c1);
+                previous = g;
+            }
+            msgs[0] = previous;
             for(size_t i = 1; i < iterations - 1; ++i)
             {
-                Msg msg = buf.get();
+                Msg msg;
+                {
+                    GET g(c1);
+                    msg = g;
+                }
                 msgs[i] = msg;
                 long diff = (msg - previous) - 1;
                 result += (diff * diff);
@@ -104,6 +119,7 @@ bool testSingleProducerSingleConsumer()
     return status;
 }
 
+#if 0
 bool testTwoProducerSingleConsumer()
 {
     int result = 0;
@@ -190,6 +206,7 @@ bool testTwoProducerSingleConsumer()
     
     return status;
 }
+#endif
 
 
 
@@ -197,7 +214,7 @@ int main()
 {
     bool status = true;
     status = testSingleProducerSingleConsumer();
-    status &= testTwoProducerSingleConsumer() && status;
+//    status &= testTwoProducerSingleConsumer() && status;
     
     return status ? 0 : 1;
 }

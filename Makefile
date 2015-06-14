@@ -7,7 +7,7 @@ valgrind_home = /opt/valgrind-svn
 valgrind = $(valgrind_home)/bin/valgrind
 
 CPPFLAGS = -I $(valgrind_home)/include
-CXXFLAGS = -g --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@
+CXXFLAGS = -g -O3 --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@
 CXX = clang++
 
 rapidjson = rapidjson/include

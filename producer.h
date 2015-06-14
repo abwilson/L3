@@ -54,20 +54,7 @@ namespace L3
             return _head++;
         }
 
-        void commit(ProducerType::Single, Index _slot)
-        {
-            //
-            // To commit a put we advance the cursor to show that slot
-            // is now available for reading. For single producer
-            // increment doesn't need to be atomic but store must be
-            // synchronised.
-            //
-            dstor._cursor.fetch_add(1, std::memory_order_relaxed);
-            dstor._cursor.store(std::memory_order_release);
-        }
-
-        template<typename SpinProbe>
-        Index incHead(ProducerType::Multi, SpinProbe&)
+        Index incHead(ProducerType::Multi)
         {
             //
             // Multi-threaded producer must use atomic increment.
@@ -75,8 +62,12 @@ namespace L3
             return _head.fetch_add(1, std::memory_order_acquire);
         }
 
-        template<typename SpinProbe>
-        void commit(ProducerType::Multi, Index slot, SpinProbe& sp)
+        bool waitForCursor(ProducerType::Single, Index _Slot)
+        {
+            return false;
+        }
+
+        bool waitForCursor(ProducerType::Multi, Index slot)
         {
             //
             // For multiple producers it's possible that we've claimed a
@@ -85,21 +76,11 @@ namespace L3
             // them. When cursor is 1 less than _slot we know that we are
             // next to commit.
             //
-            SpinProbe probe;
-            while(dstor._cursor.load(std::memory_order_acquire) < slot - 1)
-            {
-                sp();
-            }                    
-            //
-            // No need to CAS. Only we could have been waiting for
-            // this particular cursor value.
-            //
-            dstor._cursor.fetch_add(1, std::memory_order_release);
+            return dstor._cursor.load(std::memory_order_acquire) < slot - 1;
         }
 
-    public:
         template<typename SpinProbe=NoOp>
-        Index claim(SpinProbe& sp=SpinProbe())
+        Index claim(const SpinProbe& sp=SpinProbe())
         {
             //
             // Claim a slot. For the single producer we just do...
@@ -130,18 +111,39 @@ namespace L3
             // this point. Since _tail monotonically increases the
             // condition cannot be invalidated by consumers.
             //
-            while(ConsumerList::atLeast(wrapAt))
+            while(ConsumerList::lessThanEqual(wrapAt))
             {
                 sp();
             }
             return slot;
         }
 
-        template<typename SpinProbe=NoOp>
-        void commit(Index slot, SpinProbe& sp=SpinProbe())
+        template<typename SpinProbe>
+        void commit(Index slot, const SpinProbe& sp=SpinProbe())
         {
-            commit(type(), slot, sp);
+            //
+            // For multiple producers it's possible that we've claimed a
+            // slot while another producer is doing a put. If the other
+            // producers have not yet committed then we must wait for
+            // them. When cursor is 1 less than _slot we know that we are
+            // next to commit.
+            //
+            SpinProbe probe;
+            while(waitForCursor(type(), slot))
+            {
+                sp();
+            }                    
+            //
+            // No need to CAS. Only we could have been waiting for
+            // this particular cursor value.
+            //
+            dstor._cursor.fetch_add(1, std::memory_order_release);
         }
+
+    public:
+
+        template<typename ClaimProbe=NoOp, typename CommitProbe=NoOp>
+        friend class Put;
 
         template<typename ClaimProbe=NoOp, typename CommitProbe=NoOp>
         class Put
@@ -151,8 +153,8 @@ namespace L3
         public:
             using value_type = typename Dstor::value_type;
             
-            Put(ProducerT& p): _p(p), _slot(p.claimHead(ClaimProbe())) {}
-            ~Put() { _p.commitHead(_slot, CommitProbe()); }
+            Put(ProducerT& p): _p(p), _slot(p.claim(ClaimProbe())) {}
+            ~Put() { _p.commit(_slot, CommitProbe()); }
 
             value_type& operator=(const value_type& rhs) const
             { return dstor._ring[_slot] = rhs; }

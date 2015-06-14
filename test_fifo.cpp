@@ -22,13 +22,13 @@ using CursorSpinCounter = Counter<cursorSpinCount>;
 
 typedef size_t Msg;
 
-using DR = Fifo<Msg, 8>;
+using DR = Fifo<Msg, 19>;
 using PUT = DR::Put<PutSpinCounter, CursorSpinCounter>;
 using GET = DR::Get<GetSpinCounter>;
 
 DR buf;
 
-constexpr size_t iterations = 10000;//0000; // 100 Million.
+constexpr size_t iterations = 100000000; // 100 Million.
 
 std::array<Msg, iterations> msgs;
 
