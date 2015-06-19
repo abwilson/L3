@@ -2,3 +2,5 @@
 *.o
 a.out
 *.d
+test_disruptor
+test_fifo
