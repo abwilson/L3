@@ -4,15 +4,16 @@
 #include "ring.h"
 #include "cacheline.h"
 #include "types.h"
+#include "sequence.h"
 
 #include <atomic>
 
 namespace L3 // Low Latency Library
 {
-    using Sequence = std::atomic<Index>;
+//    using Sequence = std::atomic<Index>;
 
     template<typename T, size_t log2size>
-    class DisruptorT
+    class DisruptorT: Ring<T, log2size>
     {
         //
         // A valid ring buffer needs the cursor position to be
@@ -34,8 +35,9 @@ namespace L3 // Low Latency Library
         using Ring = Ring<T, log2size>;
         using value_type = T;
 
+        using Ring::operator[];
+
         static constexpr Index size{Ring::size};
-        L3_CACHE_LINE Ring     _ring;
         L3_CACHE_LINE Sequence _cursor{size};
     };
 }

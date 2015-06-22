@@ -141,11 +141,12 @@ namespace L3
         }
 
     public:
+        using value_type = typename Dstor::value_type;
 
-        template<typename ClaimProbe=NoOp, typename CommitProbe=NoOp>
+        template<typename ClaimProbe/*=NoOp*/, typename CommitProbe/*=NoOp*/>
         friend class Put;
 
-        template<typename ClaimProbe=NoOp, typename CommitProbe=NoOp>
+        template<typename ClaimProbe, typename CommitProbe>
         class Put
         {
             ProducerT& _p;
@@ -157,26 +158,24 @@ namespace L3
             ~Put() { _p.commit(_slot, CommitProbe()); }
 
             value_type& operator=(const value_type& rhs) const
-            { return dstor._ring[_slot] = rhs; }
+            { return dstor[_slot] = rhs; }
 
             operator value_type&() const
-            { return dstor.ring[_slot]; }
+            { return dstor[_slot]; }
         };
-        
+
+        template<typename ClaimProbe=NoOp, typename CommitProbe=NoOp>
+        void put(const value_type& msg)
+        {
+            Put<ClaimProbe, CommitProbe> p(*this);
+            p = msg;
+        }
+
+        void put(const value_type& msg)
+        {
+            put<>(msg);
+        }
     };
-
-    // Sequence s;
-    // Producer<10, ConsumerList<s>> sp;
-    // void h()
-    // {
-    //     sp.commit(sp.claim());
-    // }
-
-    // Producer<10, ConsumerList<s>, ProducerType::Multi> mp;
-    // void i()
-    // {
-    //     mp.commit(mp.claim());
-    // }
 }
 
 #endif

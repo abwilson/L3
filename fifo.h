@@ -14,6 +14,7 @@
 #include "cacheline.h"
 #include "ring.h"
 #include "types.h"
+#include "sequence.h"
 
 namespace L3 // Low Latency Library
 {
