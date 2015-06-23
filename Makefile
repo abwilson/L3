@@ -1,6 +1,7 @@
 srcs.cpp	:= $(wildcard *.cpp)
 srcs.c		:= $(wildcard *.c)
 objs		:= $(srcs.cpp:%.cpp=%.o) $(srcs.c:%.c=%.o)
+deps		:= $(srcs.cpp:%.cpp=%.d) $(srcs.c:%.c=%.d)
 execs		:= $(srcs.cpp:%.cpp=%)   $(srcs.c:%.cpp=%)
 
 valgrind_home = /opt/valgrind-svn
@@ -23,7 +24,7 @@ $(execs): %: %.o
 	$(LINK.cc) $^ -o $@
 
 clean:
-	- rm -f $(execs) $(objs)
+	- rm -f $(execs) $(objs) $(deps)
 
 .PHONY: force_run
 
@@ -38,4 +39,4 @@ time: $(execs:%=%.time)
 %.valgrind: %
 	$(valgrind) --tool=callgrind --instr-atstart=no ./$<
 
--include *.d
+-include $(deps)
