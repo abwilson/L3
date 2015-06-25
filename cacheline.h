@@ -13,7 +13,7 @@ namespace L3 // Low Latency Library
 }
 
 #ifndef L3_CACHE_LINE
-#    define L3_CACHE_LINE alignas(cache_line_size)
+#    define L3_CACHE_LINE alignas(L3::cache_line_size)
 #endif
 
 #endif

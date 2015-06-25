@@ -4,8 +4,9 @@
 #include "types.h"
 
 #include <atomic>
-#include <limits>
+//#include <limits>
 #include <algorithm>
+#include <iostream>
 
 namespace L3
 {
@@ -22,30 +23,40 @@ namespace L3
         bool operator>(Index idx) const { return !(*this <= idx); }
     };
 
-//    using Sequence = std::atomic<Index>;
-
     template<const Sequence&... elems>
     struct SequenceList
     {
         static constexpr bool lessThanEqual(Index i) { return false; }
-
-        static constexpr Index least() { return std::numeric_limits<Index>::max(); }
+        static constexpr Index least();
     };
 
-    template<const Sequence& car, const Sequence&... cdr>
-    struct SequenceList<car, cdr...>: SequenceList<cdr...>
+    template<const Sequence& _1, const Sequence&... tail>
+    struct SequenceList<_1, tail...>: SequenceList<tail...>
     {
         static constexpr bool lessThanEqual(Index idx)
         {
-            return car <= idx ||
-                SequenceList<cdr...>::lessThanEqual(idx);
+            return _1 <= idx || SequenceList<tail...>::lessThanEqual(idx);
+        }
+
+        static constexpr Index least()
+        {
+            return _1.load(std::memory_order_acquire);
+        }
+    };
+
+    template<const Sequence& _1, const Sequence& _2, const Sequence&... tail>
+    struct SequenceList<_1, _2, tail...>: SequenceList<_2, tail...>
+    {
+        static constexpr bool lessThanEqual(Index idx)
+        {
+            return _1 <= idx || SequenceList<_2, tail...>::lessThanEqual(idx);
         }
 
         static constexpr Index least()
         {
             return std::min(
-                car.load(std::memory_order_acquire),
-                SequenceList<cdr...>::least());
+                _1.load(std::memory_order_acquire),
+                SequenceList<_2, tail...>::least());
         }
     };
 

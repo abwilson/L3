@@ -2,15 +2,22 @@
 #define GET_H
 
 #include "sequence.h"
+#include "ring.h"
 
 namespace L3
 {
-    template<Sequence& readCursor, typename UpStream, typename SpinProbe=NoOp>
+    template<Sequence& readCursor,
+             typename Iterator,
+             typename UpStream,
+             typename SpinPolicy=NoOp>
     struct Get
     {
         Get():
-            _begin(readCursor.load(std::memory_order_relaxed)),
-            _end(claim())
+            //
+            // Only a single thread should be modifying the read cursor.
+            //
+            _begin{readCursor.load(std::memory_order_relaxed)},
+            _end{claim()}
         {
         }
 
@@ -19,24 +26,28 @@ namespace L3
             readCursor.store(_end, std::memory_order_release);
         }
 
-        Index begin() const { return _begin; }
-        Index end() const { return _end; }
+        Iterator begin() const { return _begin; }
+        Iterator end() const { return _end; }
 
-    protected:
-        Index _begin;
-        Index _end;
-
+    private:
+        Iterator _begin;
+        Iterator _end;
+        
         Index claim()
         {
-            Index begin = readCursor.load(std::memory_order_consume);
-
+            //
+            // The readCursor is the start of a dependency chain
+            // leading to reading a message from the ring
+            // buffer. Therefore consume semantics are sufficient to
+            // ensure synchronisation.
+            //
             Index end;
-            SpinProbe sp;
-            while(begin > (end = UpStream::least()))
+            SpinPolicy sp;
+            while(_begin > (end = UpStream::least()))
             {
-                sp;
+                sp();
             }
-            return end;
+            return end + 1;
         }
     };
 }

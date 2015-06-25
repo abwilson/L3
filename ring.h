@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <type_traits>
+#include <iterator>
 
 namespace L3 // Low Latency Library
 {
@@ -29,7 +30,7 @@ namespace L3 // Low Latency Library
      * be monotonically increasing. This property can be used in to
      * solve the ABA problem in algorithms involving CAS.
      */
-    template<typename T, char log2size>
+    template<typename T, size_t log2size>
     class Ring
     {
         static_assert(log2size < 32, "Unreasonable RingBuf size.");
@@ -52,13 +53,24 @@ namespace L3 // Low Latency Library
         // An index typed on the ring instance it came from.
         //
         template<Ring& r>
-        struct Idx
+        struct Iterator: std::iterator<std::random_access_iterator_tag, T>
         {
+            using Ring = Ring;
+            Iterator(Index i): _index(i) {}
             static constexpr Ring& _ring = r;
-            T& operator*() const { return _ring[_index]; }
+            T& operator*()  const { return _ring[_index]; }
             T* operator->() const { return &_ring[_index]; }
-            
-            size_t _index;
+
+            Iterator& operator++()
+            {
+                ++_index;
+                return *this;
+            }
+
+            operator Index() const { return _index; }
+
+        private:
+            Index _index;
         };
 
     protected:

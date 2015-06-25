@@ -7,7 +7,7 @@ execs		:= $(srcs.cpp:%.cpp=%)   $(srcs.c:%.cpp=%)
 valgrind_home = /opt/valgrind-svn
 valgrind = $(valgrind_home)/bin/valgrind
 
-l3_macros = L3_ITERATIONS L3_SIZE
+l3_macros = L3_ITERATIONS L3_QSIZE
 
 macros = $(foreach m,$(l3_macros),$($m:%=-D$m=$($m)))
 
