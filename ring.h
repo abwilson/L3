@@ -7,6 +7,10 @@
 
 namespace L3 // Low Latency Library
 {
+    //
+    // With a 64 bit index we could use values at a rate of 4GHz
+    // for 136 years before worrying about wrapping.
+    //
     using Index = uint64_t;
     /**
      * A buffer of Ts indexed in a circular manner using
@@ -22,19 +26,14 @@ namespace L3 // Low Latency Library
      *
      * Items stored in a ring can be addressed via an index. Since the
      * index wraps back round it can address a bounded buffer but also
-     * be monotonically increasing. This property can be used in
-     * algorithms to solve the ABA problem in algorithms involving
-     * CAS.
+     * be monotonically increasing. This property can be used in to
+     * solve the ABA problem in algorithms involving CAS.
      */
     template<typename T, char log2size>
     class Ring
     {
         static_assert(log2size < 32, "Unreasonable RingBuf size.");
     public:
-        //
-        // With a 64 bit index we could use values at a rate of 4GHz
-        // for 136 years before worrying about wrapping.
-        //
         using value_type = T;
         static constexpr Index size = 1L << log2size;
 
