@@ -7,23 +7,19 @@
 #include <thread>
 #include <iostream>
 
-//using namespace L3;
-
 #ifndef L3_ITERATIONS
 // 100 Million.
-#define L3_ITERATIONS (100000000) 
+#    define L3_ITERATIONS (100000000) 
 #endif 
 
 constexpr size_t iterations {L3_ITERATIONS};
 
 #ifndef L3_QSIZE
-#define L3_QSIZE 19 /* 1/2 MB */
+#    define L3_QSIZE 19 /* 1/2 MB */
 #endif
 
-constexpr size_t qSize {L3_QSIZE};
-
 using Msg = size_t;
-
+constexpr size_t qSize {L3_QSIZE};
 using Ring = L3::Ring<Msg, qSize>;
 L3_CACHE_LINE Ring ring;
 using Iterator = Ring::Iterator<ring>;
@@ -43,9 +39,6 @@ using Put = L3::Put<
 void
 dbg()
 {
-    // std::cout << "Ring::size: " << Ring::size << std::endl;
-    // std::cout << "qSize: " << qSize << std::endl;
-    
     std::cout << "commitCursor: " << commitCursor
               << ", writeCursor: " << writeCursor
               << ", readCursor: " << readCursor
@@ -55,7 +48,6 @@ dbg()
 
 bool test1Thread()
 {
-//    Put()(ring) = 42;
     Put() = 42;
     for(auto& m: Get())
     {
