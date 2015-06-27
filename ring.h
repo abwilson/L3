@@ -67,6 +67,12 @@ namespace L3 // Low Latency Library
                 return *this;
             }
 
+            Iterator operator++(int)
+            {
+                Iterator result{*this};
+                ++_index;
+                return result;
+            }
             operator Index() const { return _index; }
 
         private:

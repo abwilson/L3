@@ -4,16 +4,36 @@
 #include "types.h"
 
 #include <atomic>
-//#include <limits>
 #include <algorithm>
 #include <iostream>
 
 namespace L3
 {
-    struct Sequence: std::atomic<Index>
+    class Sequence;    
+    template<Sequence&, class, class, class> struct Get;
+
+    template<Sequence&, Sequence&, class, class, class, class, class>
+    struct Put;
+
+    template<const Sequence&...> struct SequenceList;
+
+    namespace CommitPolicy
     {
+        struct Shared;
+    }
+    
+    class Sequence: std::atomic<Index>
+    {
+        template<Sequence&, class, class, class> friend struct Get;
+        template<Sequence&, Sequence&, class, class, class, class, class>
+        friend struct Put;
+        template<const Sequence&...> friend struct SequenceList;
+
+        friend struct CommitPolicy::Shared;
+
+    public:
+        using std::atomic<Index>::operator Index;        
         Sequence(): std::atomic<Index>{} {}
-        
         Sequence(Index i): std::atomic<Index>{i} {}
 
         bool operator<=(Index idx) const
