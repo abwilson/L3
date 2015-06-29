@@ -9,7 +9,7 @@
 #include <iostream>
 
 #ifndef L3_ITERATIONS
-#    define L3_ITERATIONS 100000000 //000000
+#    define L3_ITERATIONS 10000000 //000000
 #endif 
 
 constexpr size_t iterations {L3_ITERATIONS};

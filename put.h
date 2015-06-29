@@ -38,7 +38,7 @@ namespace L3
         Sequence& writeCursor,
         Sequence& commitCursor,
         typename Iterator,
-        typename UpStream,
+        typename Barrier,
         typename CommitPolicy,
         typename ClaimSpinPolicy=NoOp,
         typename CommitSpinPolicy=NoOp>
@@ -85,7 +85,7 @@ namespace L3
             // condition cannot be invalidated by consumers.
             //
             ClaimSpinPolicy sp;
-            while(UpStream::least() <= wrapAt)
+            while(Barrier::least() <= wrapAt)
             {
                 sp();
             }

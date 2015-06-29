@@ -8,7 +8,7 @@ namespace L3
 {
     template<Sequence& readCursor,
              typename Iterator,
-             typename UpStream,
+             typename Barrier,
              typename SpinPolicy=NoOp>
     struct Get
     {
@@ -43,7 +43,7 @@ namespace L3
             //
             Index end;
             SpinPolicy sp;
-            while(_begin >= (end = UpStream::least()))
+            while(_begin >= (end = Barrier::least()))
             {
                 sp();
             }

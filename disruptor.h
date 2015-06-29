@@ -20,22 +20,22 @@ namespace L3 // Low Latency Library
         L3_CACHE_LINE static L3::Sequence commitCursor;
         L3_CACHE_LINE static L3::Sequence writeCursor;
 
-        template<typename UpStream,
+        template<typename Barrier,
                  typename CommitPolicy,
                  typename ClaimSpinPolicy=NoOp,
                  typename CommitSpinPolicy=NoOp>
         using Put = L3::Put<writeCursor,
                             commitCursor,
                             Iterator,
-                            UpStream,
+                            Barrier,
                             CommitPolicy,
                             ClaimSpinPolicy,
                             CommitSpinPolicy>;
 
         template<Sequence& readCursor,
-                 typename UpStream,
+                 typename Barrier,
                  typename SpinPolicy=NoOp>
-        using Get = Get<readCursor, Iterator, UpStream, SpinPolicy>;
+        using Get = Get<readCursor, Iterator, Barrier, SpinPolicy>;
     };
 
     template<typename T, size_t s, size_t t>
