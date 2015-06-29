@@ -43,11 +43,11 @@ namespace L3
             //
             Index end;
             SpinPolicy sp;
-            while(_begin > (end = UpStream::least()))
+            while(_begin >= (end = UpStream::least()))
             {
                 sp();
             }
-            return end + 1;
+            return end;
         }
     };
 }

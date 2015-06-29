@@ -15,19 +15,16 @@ namespace L3
     template<Sequence&, Sequence&, class, class, class, class, class>
     struct Put;
 
-    template<const Sequence&...> struct SequenceList;
+    template<const Sequence&...> struct Barrier;
 
-    namespace CommitPolicy
-    {
-        struct Shared;
-    }
+    namespace CommitPolicy { struct Shared; }
     
     class Sequence: std::atomic<Index>
     {
         template<Sequence&, class, class, class> friend struct Get;
         template<Sequence&, Sequence&, class, class, class, class, class>
         friend struct Put;
-        template<const Sequence&...> friend struct SequenceList;
+        template<const Sequence&...> friend struct Barrier;
 
         friend struct CommitPolicy::Shared;
 
@@ -35,66 +32,8 @@ namespace L3
         using std::atomic<Index>::operator Index;        
         Sequence(): std::atomic<Index>{} {}
         Sequence(Index i): std::atomic<Index>{i} {}
-
-        bool operator<=(Index idx) const
-        {
-            return load(std::memory_order_acquire) <= idx;
-        }
-        bool operator>(Index idx) const { return !(*this <= idx); }
     };
 
-    template<const Sequence&... elems>
-    struct SequenceList
-    {
-        static constexpr bool lessThanEqual(Index i) { return false; }
-        static constexpr Index least();
-    };
-
-    template<const Sequence& _1, const Sequence&... tail>
-    struct SequenceList<_1, tail...>: SequenceList<tail...>
-    {
-        static constexpr bool lessThanEqual(Index idx)
-        {
-            return _1 <= idx || SequenceList<tail...>::lessThanEqual(idx);
-        }
-
-        static constexpr Index least()
-        {
-            return _1.load(std::memory_order_acquire);
-        }
-    };
-
-    template<const Sequence& _1, const Sequence& _2, const Sequence&... tail>
-    struct SequenceList<_1, _2, tail...>: SequenceList<_2, tail...>
-    {
-        static constexpr bool lessThanEqual(Index idx)
-        {
-            return _1 <= idx || SequenceList<_2, tail...>::lessThanEqual(idx);
-        }
-
-        static constexpr Index least()
-        {
-            return std::min(
-                _1.load(std::memory_order_acquire),
-                SequenceList<_2, tail...>::least());
-        }
-    };
-
-    template<size_t size, const Sequence (&elems)[size]>
-    struct SequenceArray
-    {
-        static bool lessThanEqual(Index idx)
-        {
-            for(auto& i: elems)
-            {
-                if(i <= idx)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
 }
 
 #endif

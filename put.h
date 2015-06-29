@@ -3,6 +3,7 @@
 
 #include "ring.h"
 #include "sequence.h"
+#include "barrier.h"
 
 namespace L3
 {
@@ -27,7 +28,7 @@ namespace L3
                 // then we must wait for them. When cursor is 1 less
                 // than _slot we know that we are next to commit.
                 //
-                return commitCursor.load(std::memory_order_acquire) < slot - 1;
+                return commitCursor.load(std::memory_order_acquire) < slot;
             }
             static const std::memory_order order{std::memory_order_consume};
         };
@@ -38,7 +39,7 @@ namespace L3
         Sequence& commitCursor,
         typename Iterator,
         typename UpStream,
-        typename CommitPolicy, //=CommitPolicy::Unique,
+        typename CommitPolicy,
         typename ClaimSpinPolicy=NoOp,
         typename CommitSpinPolicy=NoOp>
     struct Put
@@ -84,7 +85,7 @@ namespace L3
             // condition cannot be invalidated by consumers.
             //
             ClaimSpinPolicy sp;
-            while(UpStream::lessThanEqual(wrapAt))
+            while(UpStream::least() <= wrapAt)
             {
                 sp();
             }
@@ -101,8 +102,8 @@ namespace L3
             // next to commit.
             //
             CommitSpinPolicy sp;
-            CommitPolicy cp;
-            while(cp(commitCursor, slot))
+            CommitPolicy shouldSpin;
+            while(shouldSpin(commitCursor, slot))
             {
                 sp();
             }

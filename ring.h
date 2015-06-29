@@ -49,6 +49,9 @@ namespace L3 // Low Latency Library
             static constexpr Index _mask = size - 1;
             return _storage[idx & _mask];
         }
+
+        const T* begin() const { return std::begin(_storage); }
+        const T* end() const { return std::end(_storage); }
         //
         // An index typed on the ring instance it came from.
         //
