@@ -2,40 +2,40 @@
 #define DISRUPTOR_H
 
 #include "ring.h"
+#include "barrier.h"
 #include "cacheline.h"
 #include "sequence.h"
 #include "get.h"
 
 namespace L3 // Low Latency Library
 {
-    template<typename T, size_t s, size_t tag = 0>
+    template<typename T, size_t s, size_t t=0>
     struct Disruptor
     {
+        using DISRUPTOR = Disruptor<T, s, t>;
         using Msg = T;
-        static const size_t size = s;
-        using Ring = L3::Ring<Msg, size>;
+        using Ring = L3::Ring<Msg, s>;
+        static const size_t size = Ring::size;
         L3_CACHE_LINE static Ring ring;
+        
         using Iterator = typename Ring::template Iterator<ring>;
 
-        L3_CACHE_LINE static L3::Sequence commitCursor;
-        L3_CACHE_LINE static L3::Sequence writeCursor;
+        L3_CACHE_LINE static L3::Sequence cursor;
 
         template<typename Barrier,
                  typename CommitPolicy,
                  typename ClaimSpinPolicy=NoOp,
                  typename CommitSpinPolicy=NoOp>
-        using Put = L3::Put<writeCursor,
-                            commitCursor,
-                            Iterator,
+        using Put = L3::Put<DISRUPTOR,
                             Barrier,
                             CommitPolicy,
                             ClaimSpinPolicy,
                             CommitSpinPolicy>;
 
-        template<Sequence& readCursor,
-                 typename Barrier,
+        template<size_t tag=0,
+                 typename BARRIER=Barrier<DISRUPTOR>,
                  typename SpinPolicy=NoOp>
-        using Get = Get<readCursor, Iterator, Barrier, SpinPolicy>;
+        using Get = Get<DISRUPTOR, tag, BARRIER, SpinPolicy>;
     };
 
     template<typename T, size_t s, size_t t>
@@ -44,11 +44,7 @@ namespace L3 // Low Latency Library
 
     template<typename T, size_t s, size_t t>
     L3_CACHE_LINE L3::Sequence
-    Disruptor<T, s, t>::commitCursor{Disruptor<T, s, t>::Ring::size};
-
-    template<typename T, size_t s, size_t t>
-    L3_CACHE_LINE L3::Sequence
-    Disruptor<T, s, t>::writeCursor{Disruptor<T, s, t>::Ring::size};
+    Disruptor<T, s, t>::cursor{Disruptor<T, s, t>::Ring::size};
 }
 
 #endif

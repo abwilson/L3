@@ -5,25 +5,25 @@
 
 namespace L3
 {
-    template<const Sequence&... elems> struct Barrier;
+    template<typename... Elems> struct Barrier;
 
-    template<const Sequence& s>
-    struct Barrier<s>
+    template<typename T >
+    struct Barrier<T>
     {
         static constexpr Index least()
         {
-            return s.load(std::memory_order_acquire);
+            return T::cursor.load(std::memory_order_acquire);
         }
     };
 
-    template<const Sequence& head, const Sequence&... tail>
-    struct Barrier<head, tail...>: Barrier<tail...>
+    template<typename Head, typename... Tail>
+    struct Barrier<Head, Tail...>: Barrier<Tail...>
     {
         static constexpr Index least()
         {
             return std::min(
-                head.load(std::memory_order_acquire),
-                Barrier<tail...>::least());
+                Head::cursor.load(std::memory_order_acquire),
+                Barrier<Tail...>::least());
         }
     };
 }

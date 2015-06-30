@@ -35,9 +35,7 @@ namespace L3
     }
 
     template<
-        Sequence& writeCursor,
-        Sequence& commitCursor,
-        typename Iterator,
+        typename Disruptor,
         typename Barrier,
         typename CommitPolicy,
         typename ClaimSpinPolicy=NoOp,
@@ -50,7 +48,10 @@ namespace L3
         template<typename T>
         Put& operator=(const T& rhs) { *_slot = rhs; return *this; }
 
+        L3_CACHE_LINE static L3::Sequence cursor;
+
     private:
+        using Iterator = typename Disruptor::Iterator;
         const Iterator _slot;
         
         Index claim()
@@ -58,7 +59,7 @@ namespace L3
             //
             // Claim a slot. For the single producer we just do...
             //
-            Index slot = writeCursor.fetch_add(1, CommitPolicy::order);
+            Index slot = cursor.fetch_add(1, CommitPolicy::order);
             //
             // We have our slot but we cannot write to it until we
             // are sure we will not overwrite data that has not
@@ -78,7 +79,7 @@ namespace L3
             // initialises _head and _tail using size as a baseline -
             // ie as if we have already done one lap around the ring.
             //
-            Index wrapAt = slot - Iterator::Ring::size;
+            Index wrapAt = slot - Disruptor::size;
             //
             // We only need to know that this relation is satisfied at
             // this point. Since _tail monotonically increases the
@@ -103,7 +104,7 @@ namespace L3
             //
             CommitSpinPolicy sp;
             CommitPolicy shouldSpin;
-            while(shouldSpin(commitCursor, slot))
+            while(shouldSpin(Disruptor::cursor, slot))
             {
                 sp();
             }
@@ -111,10 +112,21 @@ namespace L3
             // No need to CAS. Only we could have been waiting for
             // this particular cursor value.
             //
-            commitCursor.fetch_add(1, std::memory_order_release);
+            Disruptor::cursor.fetch_add(1, std::memory_order_release);
         }
-        
     };
+
+    template<typename Disruptor,
+             typename Barrier,
+             typename CommitPolicy,
+             typename ClaimSpinPolicy,
+             typename CommitSpinPolicy>
+    L3_CACHE_LINE L3::Sequence
+    Put<Disruptor,
+        Barrier,
+        CommitPolicy,
+        ClaimSpinPolicy,
+        CommitSpinPolicy>::cursor{Disruptor::size};
 }
 
 #endif

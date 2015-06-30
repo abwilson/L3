@@ -2,32 +2,19 @@
 #include "get.h"
 #include "put.h"
 #include "ring.h"
-#include "sequence.h"
 #include "disruptor.h"
 
 #include <thread>
 #include <iostream>
 
 #ifndef L3_ITERATIONS
-#    define L3_ITERATIONS 10000000 //000000
+#    define L3_ITERATIONS 10000000
 #endif 
 
 constexpr size_t iterations {L3_ITERATIONS};
 
 #ifndef L3_QSIZE
 #    define L3_QSIZE 20
-#endif
-
-#if 0
-void
-dbg()
-{
-    std::cout << "commitCursor: " << D::commitCursor
-              << ", writeCursor: " << writeCursor
-              << ", readCursor: " << readCursor
-              << ", value: " << D::ring[readCursor]
-              << std::endl;
-}
 #endif
 
 template<typename D>
@@ -38,13 +25,11 @@ void dbg()
     std::copy(D::ring.begin(), D::ring.end(), oi);
     std::cout << std::endl;
 
-    std::cout << "commitCursor: " << D::commitCursor << std::endl;
-    std::cout << "writeCursor: " << D::writeCursor << std::endl;
+    std::cout << "cursor: " << D::cursor << std::endl;
 }
 
 struct ThrowSpin
 {
-//    void operator()() const { }
     void operator()() const
     {
         throw std::runtime_error("shouldn't spin");
@@ -55,19 +40,16 @@ namespace testSpins
 {
     using D = L3::Disruptor<size_t, 1, 100>;
 
-    L3_CACHE_LINE L3::Sequence readCursor{D::Ring::size};
-
-    using Get = D::Get<readCursor, L3::Barrier<D::commitCursor>, ThrowSpin>;
-
-    using Put = D::Put<L3::Barrier<readCursor>,
+    using Get = D::Get<0, L3::Barrier<D>, ThrowSpin>;
+    using Put = D::Put<L3::Barrier<Get>,
                        L3::CommitPolicy::Unique,
                        ThrowSpin,
                        ThrowSpin>;
     void dbg1()
     {
         dbg<D>();
-        std::cout << "writeCursor: " << D::writeCursor
-                  << ", readCursor: " << readCursor
+        std::cout << "writeCursor: " << Put::cursor
+                  << ", readCursor: " << Get::cursor
                   << std::endl;
     }
 
@@ -110,22 +92,19 @@ namespace testSpins1to1to1
 {
     using D = L3::Disruptor<size_t, 1, 150>;
 
-    L3_CACHE_LINE L3::Sequence readCursor1{D::Ring::size};
-    L3_CACHE_LINE L3::Sequence readCursor2{D::Ring::size};
+    using Get1 = D::Get<0, L3::Barrier<D>, ThrowSpin>;
+    using Get2 = D::Get<1, L3::Barrier<Get1>, ThrowSpin>;
 
-    using Get1 = D::Get<readCursor1, L3::Barrier<D::commitCursor>, ThrowSpin>;
-    using Get2 = D::Get<readCursor2, L3::Barrier<readCursor1>, ThrowSpin>;
-
-    using Put = D::Put<L3::Barrier<readCursor2>,
+    using Put = D::Put<L3::Barrier<Get2>,
                        L3::CommitPolicy::Unique,
                        ThrowSpin,
                        ThrowSpin>;
     void dbg()
     {
 // dbg<D>();
-        std::cout << "writeCursor: " << D::writeCursor
-                  << ", readCursor1: " << readCursor1
-                  << ", readCursor2: " << readCursor2
+        std::cout << "writeCursor: " << Put::cursor
+                  << ", readCursor1: " << Get1::cursor
+                  << ", readCursor2: " << Get2::cursor
                   << std::endl;
     }
 
@@ -197,15 +176,13 @@ namespace test1to1
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, 200>;
 
-    L3_CACHE_LINE L3::Sequence readCursor{D::Ring::size};
-
-    using Get = D::Get<readCursor, L3::Barrier<D::commitCursor>>;
-    using Put = D::Put<L3::Barrier<readCursor>, L3::CommitPolicy::Unique>;
+    using Get = D::Get<>;
+    using Put = D::Put<L3::Barrier<Get>, L3::CommitPolicy::Unique>;
 
     void dbg1()
     {
 //        dbg<D>();
-//        std::cout << "writeCursor: " << D::writeCursor
+//        std::cout << "writeCursor: " << Put::cursor
                   // << ", readCursor: " << readCursor
                   // << std::endl;
     }
@@ -285,11 +262,9 @@ namespace test2to1
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, 300>;
 
-    L3_CACHE_LINE L3::Sequence readCursor{D::Ring::size};
+    using Get = D::Get<>;
 
-    using Get = D::Get<readCursor, L3::Barrier<D::commitCursor>>;
-
-    using Put = D::Put<L3::Barrier<readCursor>, L3::CommitPolicy::Shared>;
+    using Put = D::Put<L3::Barrier<Get>, L3::CommitPolicy::Shared>;
 
     bool test3Threads()
     {
@@ -320,11 +295,13 @@ namespace test2to1
             for(auto msg: Get())
             {
 //                dbg<D>();
+                
                 ++i;
                 D::Msg& old = msg & 0x1L ? oldOdd : oldEven;
-//                std::cout << "old: " << old << ", new: " << msg << std::endl;
                 if(msg != old + 2)
                 {
+                    // std::cout << "old: " << old << ", new: " << msg
+                    //           << std::endl;
                     return false;
                 }
                 old = msg;
@@ -342,14 +319,19 @@ namespace test2to1
 }
 
 template<typename D, typename Get>
-bool consume(bool& status)
+bool consume(size_t instance, bool& status)
 {
     typename D::Msg previous = 0;
     for(typename D::Msg i = 1; i < iterations;)
     {
         for(auto msg: Get())
         {
-            i++;
+            // std::cout << "NOT FAIL: instance: " << instance
+            //           << ", previous: " << previous
+            //           << ", msg: " << msg
+            //           << ", i: " << i
+            //           << std::endl;
+            
             if(msg != previous + 1)
             {
                 std::cout << "FAIL: previous: " << previous
@@ -358,6 +340,7 @@ bool consume(bool& status)
                 return status = false;
             }
             previous = msg;
+            i++;
         }
     }
     return status = true;
@@ -367,14 +350,9 @@ namespace test1to2
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, 400>;
 
-    L3_CACHE_LINE L3::Sequence readCursor1{D::Ring::size};
-    L3_CACHE_LINE L3::Sequence readCursor2{D::Ring::size};
-
-    using Get1 = D::Get<readCursor1, L3::Barrier<D::commitCursor>>;
-    using Get2 = D::Get<readCursor2, L3::Barrier<D::commitCursor>>;
-
-    using Put = D::Put<L3::Barrier<readCursor1, readCursor2>,
-                       L3::CommitPolicy::Unique>;
+    using Get1 = D::Get<0>;
+    using Get2 = D::Get<1>;
+    using Put = D::Put<L3::Barrier<Get1, Get2>, L3::CommitPolicy::Unique>;
 
     bool
     test()
@@ -383,9 +361,9 @@ namespace test1to2
             [](){ for(D::Msg i = 1; i < iterations; ++i) Put() = i; });
 
         bool stat1;
-        std::thread cons1([&]{consume<D, Get1>(stat1);});
+        std::thread cons1([&]{consume<D, Get1>(1, stat1);});
         bool stat2;
-        consume<D, Get2>(stat2);
+        consume<D, Get2>(2, stat2);
 
         prod.join();
         cons1.join();
@@ -399,23 +377,19 @@ namespace test1to2to1
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, 500>;
 
-    L3_CACHE_LINE L3::Sequence readCursor1{D::Ring::size};
-    L3_CACHE_LINE L3::Sequence readCursor2{D::Ring::size};
-    L3_CACHE_LINE L3::Sequence readCursor3{D::Ring::size};
-    
-    using Get1 = D::Get<readCursor1, L3::Barrier<D::commitCursor>>;
-    using Get2 = D::Get<readCursor2, L3::Barrier<D::commitCursor>>;
-    using Get3 = D::Get<readCursor3, L3::Barrier<readCursor1, readCursor2>>;
+    using Get1 = D::Get<0, L3::Barrier<D>>;
+    using Get2 = D::Get<1, L3::Barrier<D>>;
+    using Get3 = D::Get<2, L3::Barrier<Get1, Get2>>;
 
-    using Put = D::Put<L3::Barrier<readCursor3>, L3::CommitPolicy::Unique>;
+    using Put = D::Put<L3::Barrier<Get3>, L3::CommitPolicy::Unique>;
 
     void dbg()
     {
         // dbg<D>();
 
-        std::cout << "readCursor1: " << readCursor1 << std::endl;
-        std::cout << "readCursor2: " << readCursor2 << std::endl;
-        std::cout << "readCursor3: " << readCursor3 << std::endl;
+        std::cout << "readCursor1: " << Get1::cursor << std::endl;
+        std::cout << "readCursor2: " << Get2::cursor << std::endl;
+        std::cout << "readCursor3: " << Get3::cursor << std::endl;
     }
 
     bool
@@ -463,9 +437,9 @@ namespace test1to2to1
         bool status1;
         bool status2;
         bool status3;
-        std::thread consumer1([&]{consume<D, Get1>(status1);});
-        std::thread consumer2([&]{consume<D, Get2>(status2);});
-        consume<D, Get3>(status3);
+        std::thread consumer1([&]{consume<D, Get1>(1, status1);});
+        std::thread consumer2([&]{consume<D, Get2>(2, status2);});
+        consume<D, Get3>(3, status3);
         prod.join();
         consumer1.join();
         consumer2.join();

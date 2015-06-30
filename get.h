@@ -6,28 +6,32 @@
 
 namespace L3
 {
-    template<Sequence& readCursor,
-             typename Iterator,
+    template<typename Disruptor,
+             size_t tag,
              typename Barrier,
              typename SpinPolicy=NoOp>
     struct Get
     {
+        using Iterator = typename Disruptor::Iterator;
+        
         Get():
             //
             // Only a single thread should be modifying the read cursor.
             //
-            _begin{readCursor.load(std::memory_order_relaxed)},
+            _begin{cursor.load(std::memory_order_relaxed)},
             _end{claim()}
         {
         }
 
         ~Get()
         {
-            readCursor.store(_end, std::memory_order_release);
+            cursor.store(_end, std::memory_order_release);
         }
 
         Iterator begin() const { return _begin; }
         Iterator end() const { return _end; }
+
+        L3_CACHE_LINE static L3::Sequence cursor;
 
     private:
         Iterator _begin;
@@ -36,7 +40,7 @@ namespace L3
         Index claim()
         {
             //
-            // The readCursor is the start of a dependency chain
+            // The cursor is the start of a dependency chain
             // leading to reading a message from the ring
             // buffer. Therefore consume semantics are sufficient to
             // ensure synchronisation.
@@ -50,6 +54,13 @@ namespace L3
             return end;
         }
     };
+
+    template<typename Disruptor,
+             size_t tag,
+             typename Barrier,
+             typename SpinPolicy>
+    L3_CACHE_LINE L3::Sequence
+    Get<Disruptor, tag, Barrier, SpinPolicy>::cursor{Disruptor::size};
 }
 
 #endif

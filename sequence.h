@@ -10,21 +10,17 @@
 namespace L3
 {
     class Sequence;    
-    template<Sequence&, class, class, class> struct Get;
-
-    template<Sequence&, Sequence&, class, class, class, class, class>
-    struct Put;
-
-    template<const Sequence&...> struct Barrier;
+    template<class, size_t, class, class> struct Get;
+    template<class, class, class, class, class> struct Put;
+    template<typename...> struct Barrier;
 
     namespace CommitPolicy { struct Shared; }
     
     class Sequence: std::atomic<Index>
     {
-        template<Sequence&, class, class, class> friend struct Get;
-        template<Sequence&, Sequence&, class, class, class, class, class>
-        friend struct Put;
-        template<const Sequence&...> friend struct Barrier;
+        template<class, size_t, class, class> friend struct Get;
+        template<class, class, class, class, class> friend struct Put;
+        template<typename...> friend struct Barrier;
 
         friend struct CommitPolicy::Shared;
 
