@@ -47,20 +47,20 @@ namespace L3 // Low Latency Library
 
         L3_CACHE_LINE static L3::Sequence cursor;
 
-        template<typename Barrier,
-                 typename CommitPolicy,
-                 typename ClaimSpinPolicy=NoOp,
-                 typename CommitSpinPolicy=NoOp>
-        using Put = L3::Put<DISRUPTOR,
-                            Barrier,
-                            CommitPolicy,
-                            ClaimSpinPolicy,
-                            CommitSpinPolicy>;
-
         template<size_t tag=0,
                  typename BARRIER=Barrier<DISRUPTOR>,
                  typename SpinPolicy=NoOp>
         using Get = Get<DISRUPTOR, tag, BARRIER, SpinPolicy>;
+
+        template<typename BARRIER=Barrier<Get<>>,
+                 typename COMMITPOLICY=CommitPolicy::Unique,
+                 typename ClaimSpinPolicy=NoOp,
+                 typename CommitSpinPolicy=NoOp>
+        using Put = L3::Put<DISRUPTOR,
+                            BARRIER,
+                            COMMITPOLICY,
+                            ClaimSpinPolicy,
+                            CommitSpinPolicy>;
     };
 
     template<typename T, size_t s, size_t t>
