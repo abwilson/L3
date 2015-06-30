@@ -2,7 +2,9 @@
 #define GET_H
 
 #include "sequence.h"
-#include "ring.h"
+
+#include <L3/util/cacheline.h>
+//#include "ring.h"
 
 namespace L3
 {

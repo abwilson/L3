@@ -1,8 +1,8 @@
-#include "cacheline.h"
-#include "get.h"
-#include "put.h"
-#include "ring.h"
-#include "disruptor.h"
+//#include <L3/util/cacheline.h>
+//#include <L3/disruptor/get.h>
+//#include <L3/disruptor/put.h>
+//#include <L3/disruptor/ring.h>
+#include <L3/disruptor/disruptor.h>
 
 #include <thread>
 #include <iostream>

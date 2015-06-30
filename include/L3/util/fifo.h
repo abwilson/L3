@@ -14,7 +14,6 @@
 #include "cacheline.h"
 #include "ring.h"
 #include "types.h"
-#include "sequence.h"
 
 namespace L3 // Low Latency Library
 {
@@ -49,15 +48,15 @@ namespace L3 // Low Latency Library
         //
         // The next put position.
         //
-        L3_CACHE_LINE Sequence _head{size + 1};
+        L3_CACHE_LINE std::atomic<Index> _head{size + 1};
         //
         // The next get.
         //
-        L3_CACHE_LINE Sequence _tail{size + 1};
+        L3_CACHE_LINE std::atomic<Index> _tail{size + 1};
         //
         // The latest commited put.
         //
-        L3_CACHE_LINE Sequence _cursor{size};
+        L3_CACHE_LINE std::atomic<Index> _cursor{size};
 
         template<typename SpinProbe=NoOp>
         Index claimHead(SpinProbe spinProbe=SpinProbe())

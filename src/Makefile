@@ -13,7 +13,7 @@ macros = $(foreach m,$(l3_macros),$($m:%=-D$m=$($m)))
 
 opt_flag = -O3
 
-CPPFLAGS = -I $(valgrind_home)/include $(macros)
+CPPFLAGS = -I../include -I $(valgrind_home)/include $(macros)
 CXXFLAGS = -g $(opt_flag) --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@
 CXX = clang++
 
@@ -21,6 +21,8 @@ CXX = clang++
 rapidjson = rapidjson/include
 
 all: $(execs)
+
+objs: $(objs)
 
 $(execs): %: %.o
 	$(LINK.cc) $^ -o $@

@@ -1,9 +1,11 @@
 #ifndef PUT_H
 #define PUT_H
 
-#include "ring.h"
 #include "sequence.h"
-#include "barrier.h"
+//#include "barrier.h"
+
+#include <L3/util/cacheline.h>
+#include <L3/util/ring.h>
 
 namespace L3
 {

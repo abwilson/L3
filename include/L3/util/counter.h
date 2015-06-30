@@ -1,5 +1,5 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef COUNTER_H
+#define COUNTER_H
 
 #include <cstddef>
 

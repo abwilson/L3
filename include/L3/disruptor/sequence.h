@@ -1,7 +1,7 @@
 #ifndef SEQUENCE_H
 #define SEQUENCE_H
 
-#include "types.h"
+#include <L3/util/types.h>
 
 #include <atomic>
 #include <algorithm>
@@ -9,18 +9,20 @@
 
 namespace L3
 {
-    class Sequence;    
-    template<class, size_t, class, class> struct Get;
-    template<class, class, class, class, class> struct Put;
+    template<typename, size_t, typename, typename> struct Get;
+    template<typename, typename, typename, typename, typename> struct Put;
     template<typename...> struct Barrier;
 
     namespace CommitPolicy { struct Shared; }
     
     class Sequence: std::atomic<Index>
     {
-        template<class, size_t, class, class> friend struct Get;
-        template<class, class, class, class, class> friend struct Put;
-        template<typename...> friend struct Barrier;
+        template<typename, size_t, typename, typename>
+        friend struct Get;
+        template<typename, typename, typename, typename, typename>
+        friend struct Put;
+        template<typename...>
+        friend struct Barrier;
 
         friend struct CommitPolicy::Shared;
 
