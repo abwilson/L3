@@ -114,7 +114,7 @@ consume(const F& f)
         {
             f(msg);
 
-            if(msg == eos && ++endCount < 2)
+            if(msg == eos && ++endCount >= 2)
             {
                 return;
             }
