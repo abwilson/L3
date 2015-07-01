@@ -40,10 +40,9 @@ SOFTWARE.
 // the messages into the second disruptor D2. These are finally
 // consumed by C4.
 //
-// This might be a complex topology but we're still not going to do
-// anything realistic with the messages. Still passing numbers around
-// to make it easy to test no messages are lost and order is
-// preserved.
+// This might be a complex topology but we're not going to do anything
+// realistic with the messages. Still passing numbers around to make
+// it easy to test no messages are lost and order is preserved.
 //
 using Msg = size_t;
 //
@@ -99,6 +98,10 @@ produce(Msg first, Msg last)
     }
     Put() = eos;
 }
+//
+// General purpose consumer loop. Counts eos events and terminates
+// once it's seen them all.
+//
 template<typename Get, typename F>
 void
 consume(const F& f)
@@ -131,6 +134,9 @@ checkSequence()
     consume<Get>(
         [&](Msg msg)
         {
+            //
+            // Don't check sequence for eos event.
+            //
             if(msg == eos)
             {
                 return;
