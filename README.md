@@ -1,5 +1,5 @@
 # L3 - Low Latency Lib
-C++ tools for building low latency systems. Includes a very fast and light implementation of an [LMAX disruptor] (https://lmax-exchange.github.io/disruptor). Code is written in c++11, makes use of `std::atomic` and therefore requires a suitable compiler.
+C++ tools for building low latency systems. Includes a very fast and light implementation of an [LMAX disruptor] (https://lmax-exchange.github.io/disruptor). Code is written in c++11, makes use of `std::atomic` and therefore requires a suitable compiler. Built and tested with Apple LLVM 5.1 on OS 10.10.3.
 
 Simple example usage:
 ```c++
@@ -99,3 +99,4 @@ main()
     return 0;
 }
 ```
+See examples directory for how more complex topologies are supported.
