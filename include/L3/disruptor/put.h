@@ -68,21 +68,28 @@ namespace L3
     struct Put
     {
         Put(): _slot(claim()) {}
-        ~Put(){ commit(_slot); }
+        ~Put() { commit(_slot); }
 
         template<typename T>
         Put& operator=(const T& rhs) { *_slot = rhs; return *this; }
+
+        template<typename T>
+        Put& operator=(const T&& rhs) { *_slot = rhs; return *this; }
 
         L3_CACHE_LINE static L3::Sequence cursor;
 
     private:
         using Iterator = typename Disruptor::Iterator;
         const Iterator _slot;
-        
+
+        //
+        // Claim 1 slot and block if we can't.
+        //
         Index claim()
         {
             //
-            // Claim a slot. For the single producer we just do...
+            // Claim a slot. Memory order depends on whether producer
+            // is shared.
             //
             Index slot = cursor.fetch_add(1, CommitPolicy::order);
             //
@@ -116,6 +123,29 @@ namespace L3
                 sp();
             }
             return slot;
+        }
+
+        //
+        // Claim up to batchSize. Don't block. Only works for unique
+        // producer.
+        //
+        Index claim(size_t batchSize)
+        {
+            // Index begin;
+            // Index end;
+            //
+            // For shared producer CAS loop on cursor store.
+            //
+            // do
+            // {
+                Index begin = cursor.load(std::memory_order_relaxed);
+                Index end = std::min(begin + batchSize, Barrier::least() - 1);
+
+                cursor.store(end, std::memory_order_relaxed);                
+            // }
+            // while(false); 
+            
+//            return slot;
         }
 
         void commit(Index slot)
