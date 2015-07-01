@@ -27,7 +27,8 @@ SOFTWARE.
 #include "sequence.h"
 
 #include <L3/util/cacheline.h>
-//#include "ring.h"
+
+#include <limits>
 
 namespace L3
 {
@@ -45,6 +46,15 @@ namespace L3
             //
             _begin{cursor.load(std::memory_order_relaxed)},
             _end{claim()}
+        {
+        }
+
+        Get(size_t maxBatchSize):
+            //
+            // Only a single thread should be modifying the read cursor.
+            //
+            _begin{cursor.load(std::memory_order_relaxed)},
+            _end{std::min(claim(), _begin + maxBatchSize)}
         {
         }
 
