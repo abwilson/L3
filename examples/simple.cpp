@@ -81,6 +81,10 @@ main()
         std::cout << "got: " << m << std::endl;
     }
     //
+    // Get is committed when the temporary goes out of scope.
+    //
+    
+    //
     // We can send messages between two threads like so.
     //
     // 10 Million messages takes less than a second on my old macbook
@@ -105,7 +109,8 @@ main()
             if(m != previous + 1)
             {
                 //
-                // Will abort since producer not joined.
+                // Oops - something went wrong. Return here will abort
+                // since producer not joined.
                 //
                 return -1;
             }
