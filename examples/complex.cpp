@@ -166,9 +166,6 @@ main()
     //
     Msg max = 10000000;
     std::thread p1([&]{ produce<Put1>(3, max); });
-    //
-    // Second producer sends end signal.
-    //
     std::thread p2([&]{ produce<Put1>(2, max); });
     std::thread c1(checkSequence<Get1>);
     std::thread c2(checkSequence<Get2>);
