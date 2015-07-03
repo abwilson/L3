@@ -84,6 +84,9 @@ using D2 = L3::Disruptor<Msg, log2size, 2>;
 using Get4 = D2::Get<>;
 using Put2 = D2::Put<>;
 //
+// That's it in terms of defining the disruptor. The rest of this
+// file is code that uses it.
+//
 // Going to produce sequences of numbers. P1 odd, P2 even. We reserve
 // 0 to as and end of stream message to shut things down.
 //
