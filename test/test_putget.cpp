@@ -194,9 +194,11 @@ namespace testSpins1to1to1
 namespace test1to1
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, 200>;
-
+    //
+    // Using defaults.
+    //
     using Get = D::Get<>;
-    using Put = D::Put<L3::Barrier<Get>, L3::CommitPolicy::Unique>;
+    using Put = D::Put<>;
 
     void dbg1()
     {

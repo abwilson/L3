@@ -28,9 +28,9 @@ SOFTWARE.
 
 namespace L3
 {
-    template<typename... Elems> struct Barrier;
+    template<typename...> struct Barrier;
 
-    template<typename T >
+    template<typename T>
     struct Barrier<T>
     {
         static constexpr Index least()

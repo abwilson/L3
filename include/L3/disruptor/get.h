@@ -38,31 +38,40 @@ namespace L3
              typename SpinPolicy=NoOp>
     struct Get
     {
-        using Iterator = typename Disruptor::Iterator;
-        
         Get():
             //
             // Only a single thread should be modifying the read cursor.
             //
             _begin{cursor.load(std::memory_order_relaxed)},
-            _end{claim()}
-        {
-        }
-
+            _end{claim(_begin)}
+        {}
+        
         Get(size_t maxBatchSize):
-            //
-            // Only a single thread should be modifying the read cursor.
-            //
             _begin{cursor.load(std::memory_order_relaxed)},
-            _end{std::min(claim(), _begin + maxBatchSize)}
+            _end{std::min(claim(_begin), _begin + maxBatchSize)}
         {
         }
 
+        enum NoBlock { noBlock };
+        Get(size_t maxBatchSize, NoBlock):
+            _begin(cursor.load(std::memory_order_relaxed)),
+            _end(std::min(Barrier::least(), _begin + maxBatchSize))
+        {}
+
+        Get(NoBlock):
+            _begin(cursor.load(std::memory_order_relaxed)),
+            _end(Barrier::least())
+        {}
+        
         ~Get()
         {
-            cursor.store(_end, std::memory_order_release);
+            if(_begin != _end)
+            {
+                cursor.store(_end, std::memory_order_release);
+            }
         }
 
+        using Iterator = typename Disruptor::Iterator;
         Iterator begin() const { return _begin; }
         Iterator end() const { return _end; }
 
@@ -71,8 +80,13 @@ namespace L3
     private:
         Iterator _begin;
         Iterator _end;
+
+        Get(Index b, Index e):
+            _begin(b),
+            _end(e)
+        {}
         
-        Index claim()
+        static Index claim(Index begin)
         {
             //
             // The cursor is the start of a dependency chain
@@ -82,7 +96,7 @@ namespace L3
             //
             Index end;
             SpinPolicy sp;
-            while(_begin >= (end = Barrier::least()))
+            while((end = Barrier::least()) <= begin)
             {
                 sp();
             }

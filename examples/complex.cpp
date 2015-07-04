@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #include <L3/disruptor/disruptor.h>
+#include <L3/disruptor/consume.h>
 
 #include <thread>
 #include <iostream>
@@ -91,8 +92,9 @@ using Put2 = D2::Put<>;
 // 0 to as and end of stream message to shut things down.
 //
 constexpr Msg eos = 0;
+
 template<typename Put>
-void
+inline void
 produce(Msg first, Msg last)
 {
     for(Msg i = first; i < last; i += 2)
@@ -101,40 +103,20 @@ produce(Msg first, Msg last)
     }
     Put() = eos;
 }
-//
-// General purpose consumer loop. Counts eos events and terminates
-// once it's seen them all.
-//
-template<typename Get, typename F>
-void
-consume(const F& f)
-{
-    int endCount = 0;
-    
-    for(;;)
-    {
-        for(auto msg: Get())
-        {
-            f(msg);
 
-            if(msg == eos && ++endCount >= 2)
-            {
-                return;
-            }
-        }
-    }
-}
 //
 // Consumers make sure sequence of messages is correct.
 //
 template<typename Get>
-void
+inline void
 checkSequence()
 {
     Msg oldOdd = 1;
     Msg oldEven = 0;
 
-    consume<Get>(
+    L3::CheckEOS<Msg, eos> checkEOS(2);
+    L3::consume<Get>(
+        checkEOS,
         [&](Msg msg)
         {
             //
@@ -156,9 +138,10 @@ checkSequence()
 //
 // C3 acts as a bridge between D1 and D2.
 //
-void consumer3Producer2()
+inline void bridge()
 {
-    consume<Get3>([](Msg msg){ Put2() = msg; });
+    L3::CheckEOS<Msg, eos> checkEOS(2);
+    L3::consume<Get3>(checkEOS, [](Msg msg){ Put2() = msg; });
 }
 
 int
@@ -172,7 +155,7 @@ main()
     std::thread p2([&]{ produce<Put1>(2, max); });
     std::thread c1(checkSequence<Get1>);
     std::thread c2(checkSequence<Get2>);
-    std::thread c3(consumer3Producer2);
+    std::thread c3(bridge);
     std::thread c4(checkSequence<Get4>);
     //
     // We love c++11.
