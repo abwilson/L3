@@ -14,7 +14,7 @@ macros = $(foreach m,$(l3_macros),$($m:%=-D$m=$($m)))
 opt_flag = -O3
 
 CPPFLAGS = -I../include -I $(valgrind_home)/include $(macros)
-CXXFLAGS = -g $(opt_flag) --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@
+CXXFLAGS = -pthread -g $(opt_flag) --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@
 CXX = clang++
 
 
