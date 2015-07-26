@@ -1,7 +1,6 @@
 #ifndef RING_H
 #define RING_H
 
-#include <atomic>
 #include <cstdint>
 #include <type_traits>
 #include <iterator>
@@ -85,6 +84,15 @@ namespace L3 // Low Latency Library
     protected:
         T _storage[size];
     };
+
+    template<typename OS, typename T, size_t log2size>
+    OS& operator<<(OS& os, const Ring<T, log2size>& ring)
+    {
+        using Ring = Ring<T, log2size>;
+        std::ostream_iterator<typename Ring::value_type> oi(os, ", ");
+        std::copy(ring.begin(), ring.end(), oi);
+        return os;
+    }
 }
 
 #endif

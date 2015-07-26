@@ -49,7 +49,7 @@ main()
     // 10 Million messages takes less than a second on my old macbook
     // pro.
     //
-    const size_t loops = 1 * 1000 * 1000; 
+    const size_t loops = 100 * 1000 * 1000; 
     //
     // Producer just writes sequencial integers.
     //
@@ -63,8 +63,8 @@ main()
     //
     // Consumer checks that these are read in the same order.
     //
-    size_t previous = 0;
-    size_t totalLatency = 0;
+    size_t previous{0};
+    uint64_t totalLatency{0};
     //
     // Should get the same number of messages we put.
     //

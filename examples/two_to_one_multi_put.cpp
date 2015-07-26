@@ -55,7 +55,7 @@ main()
         void operator()() { for(Msg i = begin; i < end; i += 2) Put() = i; }
     };
 
-    Msg iterations{100000000};
+    Msg iterations{100 * 1000 * 1000};
 
     std::thread p1(Producer{3, iterations});
     std::thread p2(Producer{2, iterations});

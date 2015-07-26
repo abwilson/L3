@@ -29,83 +29,114 @@ SOFTWARE.
 #include <thread>
 
 using Msg = size_t;
-const Msg eos{0};
-constexpr size_t log2size = 2;
+constexpr size_t log2size = 1;
 
 using D1 = L3::Disruptor<Msg, log2size, 1>;
 using D2 = L3::Disruptor<Msg, log2size, 2>;
-using DCtrl = L3::Disruptor<Msg, log2size, 3>;
 
-template<size_t tag>
-struct Handler
+template<typename D>
+struct L3_CACHE_LINE MsgTestSequence
 {
-    static
-    //std::atomic<
-        Msg
-        //        >
-    old;
-    void operator()(Msg& m)
-    {
-        if(old + 2 != m)
-        {
-            std::cout << "FAIL: tag: " << tag
-                      << ", msg: " << m
-                      << ", old: " << old
-                      << std::endl;
-        }
-        old = m;
-    }
-};
+    using Put = typename D::template Put<>;
+    using Get = typename D::template Get<>;
+    
+    const Msg eos{0};
+    const Msg first;
+    const Msg last;
+    const Msg increment;
+    const size_t tag;
+    Msg previous;
+    
+    MsgTestSequence(Msg f, Msg l, Msg i, size_t t):
+        first{f},
+        last{l},
+        increment{i},
+        tag{t},
+        previous{f - increment}
+    {}
 
-template<size_t tag>
-//std::atomic<
-    Msg
-//    >
-Handler<tag>::old{tag};
-
-using S1 = L3::Selector<D1::Get<>, Handler<1>,
-                        D2::Get<>, Handler<2>>;
-//                        DCtrl::Get<>, Controller>;
-
-const Msg loops{10000000};
-
-template<typename Put>
-inline void
-produce(Msg first, Msg last)
-{
-    for(Msg i = first; i < last; i += 2)
+    void put(Msg i)
     {
         Put() = i;
     }
-    Put() = eos;
-}
+
+    void produce()
+    {
+        for(Msg i = first; i < last; i += increment)
+        {
+            Put() = i;
+        }
+        Put() = eos;
+    }
+
+    void operator()(Msg& m)
+    {
+        if(m != eos && previous + increment != m)
+        {
+            std::cout << "FAIL: tag: " << tag
+                      << ", msg: " << m
+                      << ", previous: " << previous
+                      << std::endl;
+            abort();
+        }
+        previous = m;
+    }
+
+    bool done() const { return previous == eos; }
+};
+
+const Msg loops{10};// * 1000};// * 1000};
 
 int
 main()
 {
-    // D1::Put<>() = 20;
-    // D2::Put<>() = 30;
-    // S1::select();
-    // std::cout << "selected 20, 30" << std::endl;
+    MsgTestSequence<D1> odd{3, loops, 2, 1};
+    MsgTestSequence<D2> even{4, loops, 2, 2};
+#if 0
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
+    odd.put(1);
+    even.put(2);
 
-    // S1::select();
-    // std::cout << "selected nowt" << std::endl;
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
 
-    // D1::Put<>() = 10;
-    // S1::select();
-    // std::cout << "selected 10" << std::endl;
+    L3::select(1, even, odd);
+        
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
+    odd.put(3);
+    even.put(4);
 
-    // S1::select();
-    // std::cout << "selected nowt" << std::endl;
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
 
-    std::thread p1([]{ produce<D1::Put<>>(3, loops); });
-    std::thread p2([]{ produce<D2::Put<>>(4, loops); });
+    L3::select(1, odd, even);
+        
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
     
-    while(Handler<1>::old != eos ||
-          Handler<2>::old != eos)
-    {
-        S1::select();
-    }
+    odd.put(3);
+    even.put(4);
 
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
+
+    L3::select(1, odd, even);
+        
+    std::cout << D1::ring << std::endl;
+    std::cout << D2::ring << std::endl;
+
+    return 0;
+#endif    
+    std::thread p2([&]{ even.produce(); });
+    std::thread p1([&]{ odd.produce(); });
+    
+    while(!(odd.done() && even.done()))
+    {
+        std::cout << D1::ring << std::endl;
+        std::cout << D2::ring << std::endl;
+        L3::select(1, even, odd);
+    }
     for(auto t: {&p1, &p2}) t->join();
 }
