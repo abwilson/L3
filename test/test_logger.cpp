@@ -1,5 +1,3 @@
-#ifndef TYPES_H
-#define TYPES_H
 /*
 The MIT License (MIT)
 
@@ -23,17 +21,29 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+#include <L3/disruptor/logger.h>
 
-#include <atomic>
-
-namespace L3
+int main()
 {
-    struct NoOp { void operator()() const {}; };
-    using Index = uint64_t;
-    //
-    // Generate a type for tagging purposes.
-    //
-    template<size_t t> struct Tag { static constexpr size_t tag = t; };
-}
+    using Log = L3::Logger::Logger;
 
-#endif
+    auto generate = [](int instance){
+        for(int i = 0; i < 1000; i++)
+        {
+            Log() << "logging instance: " << instance
+            << ", i = " << i;
+        }
+    };
+    L3::Logger::Writer writer;
+    std::thread writerThread{[&]{ writer(); }};
+    std::thread generate1{ generate, 1 };
+    std::thread generate2{ generate, 2 };
+
+    generate1.join();
+    generate2.join();
+
+    std::this_thread::sleep_for(std::chrono::seconds(3)); 
+
+    writer.stop();
+    writerThread.join();
+}

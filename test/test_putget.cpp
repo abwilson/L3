@@ -57,7 +57,7 @@ struct ThrowSpin
 
 namespace testSpins
 {
-    using D = L3::Disruptor<size_t, 1, 100>;
+    using D = L3::Disruptor<size_t, 1, L3::Tag<100>>;
 
     using Get = D::Get<0, L3::Barrier<D>, ThrowSpin>;
     using Put = D::Put<L3::Barrier<Get>,
@@ -109,7 +109,7 @@ namespace testSpins
 
 namespace testSpins1to1to1
 {
-    using D = L3::Disruptor<size_t, 1, 150>;
+    using D = L3::Disruptor<size_t, 1, L3::Tag<150>>;
 
     using Get1 = D::Get<0, L3::Barrier<D>, ThrowSpin>;
     using Get2 = D::Get<1, L3::Barrier<Get1>, ThrowSpin>;
@@ -193,7 +193,7 @@ namespace testSpins1to1to1
 
 namespace test1to1
 {
-    using D = L3::Disruptor<size_t, L3_QSIZE, 200>;
+    using D = L3::Disruptor<size_t, L3_QSIZE, L3::Tag<200>>;
     //
     // Using defaults.
     //
@@ -281,7 +281,7 @@ namespace test1to1
 
 namespace test2to1
 {
-    using D = L3::Disruptor<size_t, L3_QSIZE, 300>;
+    using D = L3::Disruptor<size_t, L3_QSIZE, L3::Tag<300>>;
 
     using Get = D::Get<>;
 
@@ -369,7 +369,7 @@ bool consume(size_t instance, bool& status)
 
 namespace test1to2
 {
-    using D = L3::Disruptor<size_t, L3_QSIZE, 400>;
+    using D = L3::Disruptor<size_t, L3_QSIZE, L3::Tag<400>>;
 
     using Get1 = D::Get<0>;
     using Get2 = D::Get<1>;
@@ -396,7 +396,7 @@ namespace test1to2
 
 namespace test1to2to1
 {
-    using D = L3::Disruptor<size_t, L3_QSIZE, 500>;
+    using D = L3::Disruptor<size_t, L3_QSIZE, L3::Tag<500>>;
 
     using Get1 = D::Get<0, L3::Barrier<D>>;
     using Get2 = D::Get<1, L3::Barrier<D>>;

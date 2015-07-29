@@ -23,36 +23,30 @@ SOFTWARE.
 */
 #include <L3/disruptor/disruptor.h>
 #include <L3/disruptor/selector.h>
-#include <L3/disruptor/consume.h>
 
 #include <iostream>
+#include <sstream>
 #include <thread>
+#include <vector>
+#include <iterator>
 
 using Msg = size_t;
-constexpr size_t log2size = 1;
+constexpr size_t log2size = 18;
 
-using D1 = L3::Disruptor<Msg, log2size, 1>;
-using D2 = L3::Disruptor<Msg, log2size, 2>;
+using D1 = L3::Disruptor<Msg, log2size, L3::Tag<1>>;
+using D2 = L3::Disruptor<Msg, log2size, L3::Tag<2>>;
 
-template<typename D>
+template<typename D, Msg first, Msg last, Msg increment>
 struct L3_CACHE_LINE MsgTestSequence
 {
     using Put = typename D::template Put<>;
     using Get = typename D::template Get<>;
     
     const Msg eos{0};
-    const Msg first;
-    const Msg last;
-    const Msg increment;
-    const size_t tag;
     Msg previous;
-    
-    MsgTestSequence(Msg f, Msg l, Msg i, size_t t):
-        first{f},
-        last{l},
-        increment{i},
-        tag{t},
-        previous{f - increment}
+
+    MsgTestSequence():
+        previous{first - increment}
     {}
 
     void put(Msg i)
@@ -73,11 +67,10 @@ struct L3_CACHE_LINE MsgTestSequence
     {
         if(m != eos && previous + increment != m)
         {
-            std::cout << "FAIL: tag: " << tag
-                      << ", msg: " << m
+            std::cout << "D<" << D::Tag::tag << ">: FAIL:    msg: " << m
                       << ", previous: " << previous
-                      << std::endl;
-            abort();
+                      << ", &previous: " << &previous
+                      << ", ring: { " << D::ring << " }";
         }
         previous = m;
     }
@@ -85,58 +78,26 @@ struct L3_CACHE_LINE MsgTestSequence
     bool done() const { return previous == eos; }
 };
 
-const Msg loops{10};// * 1000};// * 1000};
+constexpr Msg loops{10 * 1000 * 1000};
 
 int
 main()
 {
-    MsgTestSequence<D1> odd{3, loops, 2, 1};
-    MsgTestSequence<D2> even{4, loops, 2, 2};
-#if 0
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-    odd.put(1);
-    even.put(2);
+    MsgTestSequence<D1, 3, loops, 2> odd;
+    MsgTestSequence<D2, 4, loops, 2> even;
 
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-
-    L3::select(1, even, odd);
-        
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-    odd.put(3);
-    even.put(4);
-
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-
-    L3::select(1, odd, even);
-        
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-    
-    odd.put(3);
-    even.put(4);
-
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-
-    L3::select(1, odd, even);
-        
-    std::cout << D1::ring << std::endl;
-    std::cout << D2::ring << std::endl;
-
-    return 0;
-#endif    
-    std::thread p2([&]{ even.produce(); });
     std::thread p1([&]{ odd.produce(); });
-    
-    while(!(odd.done() && even.done()))
+    std::thread p2([&]{ even.produce(); });
+
+    try
     {
-        std::cout << D1::ring << std::endl;
-        std::cout << D2::ring << std::endl;
-        L3::select(1, even, odd);
+        while(!(odd.done() && even.done()))
+        {
+            L3::select(1, even, odd);
+        }
     }
+    catch(const std::runtime_error& ex)
+    {}
+    
     for(auto t: {&p1, &p2}) t->join();
 }

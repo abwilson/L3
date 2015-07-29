@@ -11,7 +11,7 @@ l3_macros = L3_ITERATIONS L3_QSIZE
 
 macros = $(foreach m,$(l3_macros),$($m:%=-D$m=$($m)))
 
-# opt_flag = -O3
+opt_flag = -O3
 
 CPPFLAGS = -I../include -I $(valgrind_home)/include $(macros)
 CXXFLAGS = -pthread -g $(opt_flag) --std=c++11 -MMD -MP -MF $(<:%.cpp=%.d) -MT $@

@@ -53,27 +53,29 @@ This is about 1/3 the time of the shared put version.
 
 using Msg = size_t;
 
+struct In1 {};
+struct In2 {};
+struct Out {};
+
 //
 // Note the shared put version uses 2^17 size ring. To compare like
 // for like since this test has two rings each is size 2^16.
 //
-enum  { in1, in2, out };
-
-template<size_t tag>
-using D =  L3::Disruptor<Msg, 16, tag>;
+template<typename Tag>
+using D =  L3::Disruptor<Msg, 16, Tag>;
 
 //using D1 = L3::Disruptor<Msg, 16, in1>;
-using Put1 = D<in1>::Put<>;
+using Put1 = D<In1>::Put<>;
 // L3::Barrier<D<in1>::Put<>>,
 //                          L3::CommitPolicy::Unique,
 //                          L3::SpinPolicy::Yield>;
 
-using Put2 = D<in2>::Put<>;
+using Put2 = D<In2>::Put<>;
 // L3::Barrier<D<in2>::Put<>>,
 //                          L3::CommitPolicy::Unique,
 //                          L3::SpinPolicy::Yield>;
 
-using PutOut = D<out>::Put<>;
+using PutOut = D<Out>::Put<>;
 // L3::Barrier<D<out>::Put<>>,
 //                            L3::CommitPolicy::Unique,
 //                            L3::SpinPolicy::Yield>;
@@ -128,8 +130,8 @@ struct Handler
 
 Msg Handler::eosRemaining{2};
 
-using S1 = L3::Selector<D<in1>::Get<>, Handler,
-                        D<in2>::Get<>, Handler>;
+using S1 = L3::Selector<D<In1>::Get<>, Handler,
+                        D<In2>::Get<>, Handler>;
 
 template<class Put>
 struct Producer
@@ -161,7 +163,7 @@ main()
 
         while(eosRemaining)
         {
-            for(auto m: D<out>::Get<>())
+            for(auto m: D<Out>::Get<>())
             {
                 Msg& old = m & 0x1L ? oldOdd : oldEven;
                 if(m == eos)

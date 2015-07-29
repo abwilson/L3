@@ -34,13 +34,15 @@ SOFTWARE.
 
 namespace L3 // Low Latency Library
 {
-    template<typename T, size_t s, size_t t=0>
+    template<typename T, size_t s, typename TAG=void>
     struct Disruptor
     {
-        using DISRUPTOR = Disruptor<T, s, t>;
+        using DISRUPTOR = Disruptor<T, s, TAG>;
         using Msg = T;
-        using Ring = L3::Ring<Msg, s>;
+        using Tag = TAG;
+        using Ring = L3::Ring<CacheLine<Msg>, s>;
         static const size_t size = Ring::size;
+//        static const size_t tag = t;
         L3_CACHE_LINE static Ring ring;
         
         using Iterator = typename Ring::template Iterator<ring>;
@@ -63,13 +65,13 @@ namespace L3 // Low Latency Library
                             CommitSpinPolicy>;
     };
 
-    template<typename T, size_t s, size_t t>
-    L3_CACHE_LINE typename Disruptor<T, s, t>::Ring
-    Disruptor<T, s, t>::ring;
+    template<typename T, size_t s, typename Tag>
+    L3_CACHE_LINE typename Disruptor<T, s, Tag>::Ring
+    Disruptor<T, s, Tag>::ring;
 
-    template<typename T, size_t s, size_t t>
+    template<typename T, size_t s, typename Tag>
     L3_CACHE_LINE L3::Sequence
-    Disruptor<T, s, t>::cursor{Disruptor<T, s, t>::Ring::size};
+    Disruptor<T, s, Tag>::cursor{Disruptor<T, s, Tag>::Ring::size};
 }
 
 #endif

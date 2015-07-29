@@ -53,10 +53,11 @@ using Msg = size_t;
 constexpr size_t log2size = 17;
 //
 // First disruptor handles these messages. Third template parameter is
-// an instance tag. It defaults to 0 but I'm supplying 1 here
-// explicitly since we're defining D1.
+// an instance tag. It defaults to void. I'm using the Tag utility
+// struct but you would most probably use a proper class to
+// disambiguate this.  explicitly since we're defining D1.
 //
-using D1 = L3::Disruptor<Msg, log2size, 1>;
+using D1 = L3::Disruptor<Msg, log2size, L3::Tag<1>>;
 //
 // We must define Get types for our consumers first. C1 and C2 follow
 // the commit cursor in D1. This is the default. Need to supply
@@ -77,7 +78,7 @@ using Put1 = D1::Put<L3::Barrier<Get3>, L3::CommitPolicy::Shared>;
 //
 // Now define the second disruptor much like the first.
 //
-using D2 = L3::Disruptor<Msg, log2size, 2>;
+using D2 = L3::Disruptor<Msg, log2size, L3::Tag<2>>;
 //
 // It is single producer/single consumer which is what the default
 // Put/Get templates do.

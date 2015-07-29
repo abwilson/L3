@@ -57,9 +57,6 @@ namespace L3
             _begin(cursor.load(std::memory_order_relaxed)),
             _end(std::min(Barrier::least(), _begin + maxBatchSize))
         {
-            std::cout << "begin: " << (Index)_begin
-                      << ", end: " << (Index)_end
-                      << std::endl;
         }
 
         Get(NoBlock):
