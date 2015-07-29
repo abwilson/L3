@@ -25,7 +25,7 @@ SOFTWARE.
 
 int main()
 {
-    using Log = L3::Logger::Logger;
+    using Log = L3::Logger;
 
     auto generate = [](int instance){
         for(int i = 0; i < 1000; i++)
