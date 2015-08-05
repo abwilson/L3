@@ -55,7 +55,7 @@ constexpr size_t log2size = 17;
 // First disruptor handles these messages. Third template parameter is
 // an instance tag. It defaults to void. I'm using the Tag utility
 // struct but you would most probably use a proper class to
-// disambiguate this.  explicitly since we're defining D1.
+// disambiguate this.
 //
 using D1 = L3::Disruptor<Msg, log2size, L3::Tag<1>>;
 //
@@ -64,12 +64,12 @@ using D1 = L3::Disruptor<Msg, log2size, L3::Tag<1>>;
 // explicit instance number to C2 but I've give them for both to make
 // it explicit.
 //
-using Get1 = D1::Get<1>;
-using Get2 = D1::Get<2>;
+using Get1 = D1::Get<L3::Tag<1>>;
+using Get2 = D1::Get<L3::Tag<2>>;
 //
 // C3 follows C1 and C2.
 //
-using Get3 = D1::Get<3, L3::Barrier<Get1, Get2>>;
+using Get3 = D1::Get<L3::Tag<3>, L3::Barrier<Get1, Get2>>;
 //
 // Define the Put type shared between P1 and P2. It follows C3. It
 // uses a shared commit policy.

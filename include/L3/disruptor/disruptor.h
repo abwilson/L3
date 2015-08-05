@@ -49,10 +49,10 @@ namespace L3 // Low Latency Library
 
         L3_CACHE_LINE static L3::Sequence cursor;
 
-        template<size_t tag=0,
+        template<typename Tag=void,
                  typename BARRIER=Barrier<DISRUPTOR>,
                  typename SpinPolicy=NoOp>
-        using Get = Get<DISRUPTOR, tag, BARRIER, SpinPolicy>;
+        using Get = Get<DISRUPTOR, Tag, BARRIER, SpinPolicy>;
 
         template<typename BARRIER=Barrier<Get<>>,
                  typename COMMITPOLICY=CommitPolicy::Unique,

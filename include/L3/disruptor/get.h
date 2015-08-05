@@ -33,7 +33,7 @@ SOFTWARE.
 namespace L3
 {
     template<typename Disruptor,
-             size_t tag,
+             typename Tag,
              typename Barrier,
              typename SpinPolicy=NoOp>
     struct Get
@@ -106,11 +106,11 @@ namespace L3
     };
 
     template<typename Disruptor,
-             size_t tag,
+             typename Tag,
              typename Barrier,
              typename SpinPolicy>
     L3_CACHE_LINE L3::Sequence
-    Get<Disruptor, tag, Barrier, SpinPolicy>::cursor{Disruptor::size};
+    Get<Disruptor, Tag, Barrier, SpinPolicy>::cursor{Disruptor::size};
 }
 
 #endif

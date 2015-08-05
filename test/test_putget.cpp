@@ -59,7 +59,7 @@ namespace testSpins
 {
     using D = L3::Disruptor<size_t, 1, L3::Tag<100>>;
 
-    using Get = D::Get<0, L3::Barrier<D>, ThrowSpin>;
+    using Get = D::Get<L3::Tag<0>, L3::Barrier<D>, ThrowSpin>;
     using Put = D::Put<L3::Barrier<Get>,
                        L3::CommitPolicy::Unique,
                        ThrowSpin,
@@ -111,8 +111,8 @@ namespace testSpins1to1to1
 {
     using D = L3::Disruptor<size_t, 1, L3::Tag<150>>;
 
-    using Get1 = D::Get<0, L3::Barrier<D>, ThrowSpin>;
-    using Get2 = D::Get<1, L3::Barrier<Get1>, ThrowSpin>;
+    using Get1 = D::Get<L3::Tag<0>, L3::Barrier<D>, ThrowSpin>;
+    using Get2 = D::Get<L3::Tag<1>, L3::Barrier<Get1>, ThrowSpin>;
 
     using Put = D::Put<L3::Barrier<Get2>,
                        L3::CommitPolicy::Unique,
@@ -371,8 +371,8 @@ namespace test1to2
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, L3::Tag<400>>;
 
-    using Get1 = D::Get<0>;
-    using Get2 = D::Get<1>;
+    using Get1 = D::Get<L3::Tag<0>>;
+    using Get2 = D::Get<L3::Tag<1>>;
     using Put = D::Put<L3::Barrier<Get1, Get2>, L3::CommitPolicy::Unique>;
 
     bool
@@ -398,9 +398,9 @@ namespace test1to2to1
 {
     using D = L3::Disruptor<size_t, L3_QSIZE, L3::Tag<500>>;
 
-    using Get1 = D::Get<0, L3::Barrier<D>>;
-    using Get2 = D::Get<1, L3::Barrier<D>>;
-    using Get3 = D::Get<2, L3::Barrier<Get1, Get2>>;
+    using Get1 = D::Get<L3::Tag<0>, L3::Barrier<D>>;
+    using Get2 = D::Get<L3::Tag<1>, L3::Barrier<D>>;
+    using Get3 = D::Get<L3::Tag<2>, L3::Barrier<Get1, Get2>>;
 
     using Put = D::Put<L3::Barrier<Get3>, L3::CommitPolicy::Unique>;
 

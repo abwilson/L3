@@ -32,7 +32,7 @@ SOFTWARE.
 
 namespace L3
 {
-    template<typename, size_t, typename, typename> struct Get;
+    template<typename, typename, typename, typename> struct Get;
     template<typename, typename, typename, typename, typename> struct Put;
     template<typename...> struct Barrier;
 
@@ -40,7 +40,7 @@ namespace L3
     
     class Sequence: std::atomic<Index>
     {
-        template<typename, size_t, typename, typename>
+        template<typename, typename, typename, typename>
         friend struct Get;
         template<typename, typename, typename, typename, typename>
         friend struct Put;
