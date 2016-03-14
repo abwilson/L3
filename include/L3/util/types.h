@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include <atomic>
+#include <cstddef>
 
 namespace L3
 {
