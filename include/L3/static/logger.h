@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <L3/disruptor/disruptor.h>
+#include <L3/static/disruptor.h>
 
 #include <iostream>
 #include <sstream>

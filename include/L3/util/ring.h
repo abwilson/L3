@@ -33,6 +33,7 @@ namespace L3 // Low Latency Library
     class Ring
     {
         static_assert(log2size < 32, "Unreasonable RingBuf size.");
+        static_assert(log2size > 0, "Minimun ring size is 2");        
     public:
         using value_type = T;
         static constexpr Index size = 1L << log2size;
@@ -51,27 +52,60 @@ namespace L3 // Low Latency Library
 
         const T* begin() const { return std::begin(_storage); }
         const T* end() const { return std::end(_storage); }
+
+        template<typename I>
+        struct IteratorT: std::iterator<std::random_access_iterator_tag, T>
+        {
+            IteratorT(Ring* r, Index i): _ring(r), _index(i) {}
+
+            T& operator*() const { return (*_ring)[_index]; }
+            T* operator->() const { return &(*_ring)[_index]; }
+
+            I& operator++()
+            {
+                ++_index;
+                return *static_cast<I*>(this);
+            }
+
+            I operator++(int)
+            {
+                I result{*this};
+                ++_index;
+                return result;
+            }
+            operator Index() const { return _index; }
+
+        private:
+            Ring* const _ring;
+            Index _index;
+        };
+        
+        struct Iterator: IteratorT<Iterator>
+        {
+            Iterator(Ring* r, Index i): IteratorT<Iterator>(r, i) {}
+        };
         //
         // An index typed on the ring instance it came from.
         //
+#if 1
         template<Ring& r>
-        struct Iterator: std::iterator<std::random_access_iterator_tag, T>
+        struct StaticIterator: std::iterator<std::random_access_iterator_tag, T>
         {
             using Ring = Ring;
-            Iterator(Index i): _index(i) {}
+            StaticIterator(Index i): _index(i) {}
             static constexpr Ring& _ring = r;
             T& operator*()  const { return _ring[_index]; }
             T* operator->() const { return &_ring[_index]; }
 
-            Iterator& operator++()
+            StaticIterator& operator++()
             {
                 ++_index;
                 return *this;
             }
 
-            Iterator operator++(int)
+            StaticIterator operator++(int)
             {
-                Iterator result{*this};
+                StaticIterator result{*this};
                 ++_index;
                 return result;
             }
@@ -80,6 +114,14 @@ namespace L3 // Low Latency Library
         private:
             Index _index;
         };
+#else
+        template<Ring& r>
+        struct StaticIterator: IteratorT<StaticIterator<r>>
+        {
+//            using Ring = Ring;
+            StaticIterator(Index i): IteratorT<StaticIterator<r>>(&r, i) {}
+        };
+#endif
 
     protected:
         T _storage[size];

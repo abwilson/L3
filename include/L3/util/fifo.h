@@ -1,5 +1,29 @@
 #ifndef FIFO_H
 #define FIFO_H
+/*
+The MIT License (MIT)
+
+Copyright (c) 2015 Norman Wilson - Volcano Consultancy Ltd
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 /*******************************************************************************
  * 
  * Fifo is a simple lock free queue. It's constructed using the same
@@ -17,7 +41,7 @@
 
 namespace L3 // Low Latency Library
 {
-    template<typename T, char log2size>
+    template<typename T, size_t log2size>
     class Fifo
     {
         //
@@ -118,13 +142,15 @@ namespace L3 // Low Latency Library
             // 1 less than _slot we know that we are next to
             // commit.
             //
+            --slot;
+            //
             // For single producer no other thread could have
             // commited puts. So this code would be unnecessary.
             //
-            while(_cursor.load(std::memory_order_acquire) < slot - 1)
+            while(_cursor.load(std::memory_order_acquire) < slot)
             {
                 spinProbe();
-            }                    
+            }
             //
             // No need to CAS. Only we could have been waiting for
             // this particular cursor value.
@@ -143,7 +169,14 @@ namespace L3 // Low Latency Library
 
             value_type& operator=(const T& rhs) const
             { return _fifo._ring[_slot] = rhs; }
+
+            value_type& operator=(const T&& rhs) const
+            { return _fifo._ring[_slot] = rhs; }
+            
             operator value_type&() const
+            { return _fifo.ring[_slot]; }
+
+            operator value_type&&() const
             { return _fifo.ring[_slot]; }
         };
 
@@ -156,7 +189,7 @@ namespace L3 // Low Latency Library
         Index claimTail(SpinProbe spinProbe=SpinProbe())
         {
             Index slot = _tail.load(std::memory_order_acquire);
-            while(slot > _cursor.load(std::memory_order_acquire))
+            while(_cursor.load(std::memory_order_acquire) < slot)
             {
                 spinProbe();
             }

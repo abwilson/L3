@@ -59,11 +59,8 @@ bool testSingleProducerSingleConsumer()
 {
     int result = 0;
 
-//    std::atomic<bool> go { false };
-
     std::thread producer(
         [&](){
-//            while(!go);
             for(Msg i = 1; i < iterations; i++)
             {
                 PUT p(buf);
@@ -74,7 +71,6 @@ bool testSingleProducerSingleConsumer()
 
     std::thread consumer(
         [&](){
-//            while(!go);
             Msg previous = buf.get();
             for(size_t i = 1; i < iterations - 1; ++i)
             {
@@ -90,13 +86,11 @@ bool testSingleProducerSingleConsumer()
             std::cerr << "Cons done" << std::endl;
         });
 
-//    go = true;
 
     producer.join();
     consumer.join();
 
     std::cout << "result: " << result << std::endl;
-//    std::cout << "buf size: " << DR::size
 
     std::cout << "putSpinCount    = " << putSpinCount << std::endl;
     std::cout << "getSpinCount    = " << getSpinCount << std::endl; 
@@ -117,10 +111,6 @@ bool testSingleProducerSingleConsumer()
         }
         previous = i;
     }
-    // std::copy(
-    //     msgs.begin(),
-    //     msgs.end(),
-    //     std::ostream_iterator<Msg>(std::cout, "\n"));
     
     return status;
 }
@@ -183,42 +173,20 @@ bool testTwoProducerSingleConsumer()
     consumer.join();
 
     std::cout << "result: " << result << std::endl;
-//    std::cout << "buf size: " << DR::size
-
     std::cout << "putSpinCount    = " << putSpinCount << std::endl;
     std::cout << "getSpinCount    = " << getSpinCount << std::endl; 
     std::cout << "cursorSpinCount = " << cursorSpinCount << std::endl;
 
-    // Msg previous = 0;
     bool status = result == 0;
-    // for(auto i: msgs)
-    // {
-    //     if(i == 0)
-    //     {
-    //         continue;
-    //     }
-    //     if(previous >= i)
-    //     {
-    //         std::cout << "Wrong at: " << i << std::endl;
-    //         status = false;
-    //     }
-    //     previous = i;
-    // }
-    // std::copy(
-    //     msgs.begin(),
-    //     msgs.end(),
-    //     std::ostream_iterator<Msg>(std::cout, "\n"));
     
     return status;
 }
-
-
 
 int main()
 {
     bool status = true;
     status = testSingleProducerSingleConsumer();
-    status &= testTwoProducerSingleConsumer() && status;
+    status = testTwoProducerSingleConsumer() && status;
     
     return status ? 0 : 1;
 }

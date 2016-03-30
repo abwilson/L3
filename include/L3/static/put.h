@@ -38,7 +38,7 @@ namespace L3
         {
             template<typename Cursor>
             bool operator()(Cursor&, Index) { return false; }
-            static const std::memory_order order{std::memory_order_relaxed};
+            static constexpr std::memory_order order{std::memory_order_relaxed};
         };
 
         struct Shared
@@ -55,7 +55,7 @@ namespace L3
                 //
                 return commitCursor.load(std::memory_order_acquire) < slot;
             }
-            static const std::memory_order order{std::memory_order_consume};
+            static constexpr std::memory_order order{std::memory_order_consume};
         };
     }
 
@@ -131,21 +131,10 @@ namespace L3
         //
         Index claim(size_t batchSize)
         {
-            // Index begin;
-            // Index end;
-            //
-            // For shared producer CAS loop on cursor store.
-            //
-            // do
-            // {
-                Index begin = cursor.load(std::memory_order_relaxed);
-                Index end = std::min(begin + batchSize, Barrier::least() - 1);
+            Index begin = cursor.load(std::memory_order_relaxed);
+            Index end = std::min(begin + batchSize, Barrier::least() - 1);
 
-                cursor.store(end, std::memory_order_relaxed);                
-            // }
-            // while(false); 
-            
-//            return slot;
+            cursor.store(end, std::memory_order_relaxed);                
         }
 
         void commit(Index slot)

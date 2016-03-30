@@ -21,8 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include <L3/disruptor/disruptor.h>
-#include <L3/disruptor/selector.h>
+#include <L3/static/disruptor.h>
+#include <L3/static/selector.h>
 
 #include <iostream>
 #include <sstream>

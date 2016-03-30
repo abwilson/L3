@@ -5,23 +5,27 @@
 
 namespace L3
 {
-    template<typename Duration=std::chrono::microseconds,
-             typename Clock=std::chrono::steady_clock>
+    template<typename C=std::chrono::steady_clock,
+             typename D=typename C::duration>
     struct ScopedTimer
     {
-        typename Clock::time_point _start;
-        Duration& _result;
+        using duration = D;
+        using clock = C;
 
-        ScopedTimer(Duration& result):
+        typename clock::time_point _start;
+        
+        duration& _result;
+
+        ScopedTimer(duration& result):
             _result(result),
-            _start(Clock::now())
-        {}
+            _start(clock::now())
+        {
+        }
 
         ~ScopedTimer()
         {
-            typename Clock::time_point end(Clock::now());
-            
-            _result = std::chrono::duration_cast<Duration>(end - _start);
+            typename clock::time_point end(clock::now());
+            _result = std::chrono::duration_cast<duration>(end - _start);
         }
     };
 }

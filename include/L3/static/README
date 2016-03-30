@@ -1,0 +1,8 @@
+Disruptor framework where everything is statically allocated and all
+the addresses of all objects are compile time constants.  The idea is
+to give the optimiser the very best chance of generating the tightest
+code by using a little tiny bit of template meta programming. At least
+that's the plan. In most cases where the target is a shared library
+this isn't going to make much of a difference since all the symbols
+will be relocatable anyway.  However it may have applications in
+embedded systems and it was a fun exercsie to write.

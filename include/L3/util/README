@@ -1,0 +1,91 @@
+Some notes of lock free techniques using counters and ring buffers.
+
+
+Counters
+
+2^64 is a very big number. If you increment a 64 bit counter
+continuously a billion times a second it will take over 500 years for
+the value to wrap. 64 bit counters have such a great range that in
+practical terms they can be used as an infinite non-decreasing
+sequence. We can progress through the sequence using fast, atomic
+increment operations.
+
+The non-decreasing property is very useful when creating lock free
+data structures. We know that once a point in the sequence reached it
+will never be repeated - the sequence will never go backwards. Because
+of this boundary conditions can be expressed with atomic comparisons.
+
+We can implement a ring buffer using 64 bit counter to index into a
+fixed size array by using
+
+    index = counter % size
+
+If we make size a power of two then the mod operation simplifies to
+bitwise and of the log2(size) lower order bits of counter.
+
+
+Queues
+
+We can think of the queue as an infinite series of slots addressed by
+head and tail cursors. We write to head and read from tail. A ring
+buffer represents a sliding window of physical slots moving along this
+series.
+
+     ^
+     |
+     |
+     R <- head
+     I
+     N
+     G <- tail
+     |
+     |
+     ^
+
+Head and tail are constrained as follows. Firstly tail cannot catch up
+with head. ie
+
+    tail < head
+
+Secondly head cannot get so far ahead of tail that it wraps around the
+ring. Or in other words.
+
+    head < tail + size
+
+
+If head is at the front of the window and tail at the end then head
+cannot advance without wrapping round and overwriting tail. Or in
+other words
+
+     head - size <= tail 
+
+We don't want to have to worry about head - size being negative. This
+is the reason why we initialise the cursors as if they had already
+been around the ring once. 
+
+
+Claim and Commit
+
+Two key concepts 
+
+
+
+To commit a put we advance the cursor to show that slot is now
+available for reading.
+
+If there are multiple producers it's possible that we've claimed a
+slot while another producer is doing a put. If the other producers
+have not yet commited then we must wait for them. When cursor is 1
+less than _slot we know that we are next to commit.
+
+For single producer no other thread could have commited puts. So this
+code would be unnecessary.
+
+Multi Consume
+
+t1 claims
+t2 claims
+
+t2 tries commit, cannot t1 must commit first, pushes commit.
+
+

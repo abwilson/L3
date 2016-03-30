@@ -51,7 +51,7 @@ namespace L3
     }
     
     template<typename Handler, typename... Tail>
-    inline void select(size_t batchSize, Handler& h, Tail&... tail...)
+    inline void select(size_t batchSize, Handler& h, Tail&... tail)
     {
         select(batchSize, h);
         select(batchSize, tail...);

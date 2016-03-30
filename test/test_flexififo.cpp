@@ -1,5 +1,3 @@
-#ifndef TYPES_H
-#define TYPES_H
 /*
 The MIT License (MIT)
 
@@ -24,19 +22,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <atomic>
-#include <cstddef>
+#include <L3/util/flexififo.h>
+#include <L3/util/ring.h>
 
-namespace L3
+#include <iostream>
+
+using namespace L3;
+
+using Ring4 = Ring<Index, 2>;
+
+FlexiFifo<Ring4, UniqueHead, UniqueTail> fifo1To1;
+FlexiFifo<Ring4, UniqueHead, SharedTail> fifo1ToN;
+FlexiFifo<Ring4, SharedHead, UniqueTail> fifoNTo1;
+FlexiFifo<Ring4, SharedHead, SharedTail> fifoNToN;
+
+using FifoNToN = FlexiFifo<Ring4, SharedHead, SharedTail>;
+
+int
+main()
 {
-    struct NoOp { void operator()() const {}; };
-    using Index = uint64_t;
+    SharedConsumer<FifoNToN> consumer(&fifoNToN);
+    SharedConsumer<FifoNToN> consumer2(&fifoNToN);
+    std::cout << "sizeof: " << sizeof(consumer) << std::endl;
 
-    using Counter = std::atomic<Index>;
-    //
-    // Generate a type for tagging purposes.
-    //
-    template<size_t t> struct Tag { static constexpr size_t tag = t; };
+    fifoNToN.commitHead(fifoNToN.claimHead());
+    fifoNToN.commitHead(fifoNToN.claimHead());
+
+    consumer.claim();
+    consumer2.claim();
+    consumer2.commit();
+    consumer.commit();
 }
 
-#endif
+

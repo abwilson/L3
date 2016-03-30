@@ -20,3 +20,7 @@ test/test_putget
 test/test_selector
 
 test/test_logger
+
+test/min
+
+*.data

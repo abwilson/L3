@@ -42,10 +42,10 @@ sys	0m0.135s
 This is about 1/3 the time of the shared put version.
 
 */
-#include <L3/disruptor/disruptor.h>
-#include <L3/disruptor/selector.h>
-#include <L3/disruptor/consume.h>
-#include <L3/disruptor/spinpolicy.h>
+#include <L3/static/disruptor.h>
+#include <L3/static/selector.h>
+#include <L3/static/consume.h>
+#include <L3/static/spinpolicy.h>
 #include <L3/util/scopedtimer.h>
 
 #include <iostream>
@@ -150,7 +150,7 @@ main()
 {
     Msg iterations{100 * 1000 * 1000};
 
-    std::chrono::microseconds testTime;
+    L3::ScopedTimer<>::duration testTime;
     {
         L3::ScopedTimer<> timer(testTime);
         std::thread p1(Producer<Put1>{3, iterations});

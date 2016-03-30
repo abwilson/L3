@@ -42,10 +42,9 @@ namespace L3 // Low Latency Library
         using Tag = TAG;
         using Ring = L3::Ring<CacheLine<Msg>, s>;
         static const size_t size = Ring::size;
-//        static const size_t tag = t;
         L3_CACHE_LINE static Ring ring;
         
-        using Iterator = typename Ring::template Iterator<ring>;
+        using Iterator = typename Ring::template StaticIterator<ring>;
 
         L3_CACHE_LINE static L3::Sequence cursor;
 

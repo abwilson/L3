@@ -34,8 +34,8 @@ sys	0m0.113s
 This is about 3x the time of the selector version.
 
 */
-#include <L3/disruptor/disruptor.h>
-#include <L3/disruptor/consume.h>
+#include <L3/static/disruptor.h>
+#include <L3/static/consume.h>
 
 #include <iostream>
 #include <thread>
