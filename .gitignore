@@ -24,3 +24,5 @@ test/test_logger
 test/min
 
 *.data
+
+test/test_flexififo
