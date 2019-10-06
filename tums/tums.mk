@@ -27,7 +27,7 @@ this_rules.mk = $(lastword $(filter %rules.mk,$(MAKEFILE_LIST)))
 src = $(patsubst %/,%,$(dir $(this_rules.mk)))
 bld = $(bld_root)/$(src)
 
-include make/features/*.mk
+include tums/features/*.mk
 
 deps =
 
@@ -35,7 +35,7 @@ deps =
 
 stem = $*
 
-include make/patterns/*.mk
+include tums/patterns/*.mk
 
 # -include $(deps)
 

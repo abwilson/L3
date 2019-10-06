@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:abwilson/tums.git
 	branch = master
-	commit = 859cfd62f2523b326d35568c8dad3492883b91ea
-	parent = 640b3e8ec44e2a53723fd2acbea18649204ac4dc
+	commit = 141c065e1e4c08c07eacbcb8f96416b7ada13e0d
+	parent = 95ac5fb0d4b76929bc2ab2b502165da396951200
 	method = merge
 	cmdver = 0.4.0
