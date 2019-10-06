@@ -14,16 +14,25 @@ inline const T& fastMinRef(const T& lhs, const T& rhs)
 }
 
 template<typename T>
-inline const T fastMin(const T lhs, const T rhs)
+inline T fastMin(const T lhs, const T rhs)
 {
     const T tmp[] = { lhs, rhs };
     return tmp[lhs < rhs];
 }
 
-inline float branchFloat(bool b)
+template<typename T>
+inline T fastMin2(T&& lhs, T&& rhs)
 {
-    return b ? 1.3f : 2.6f;
+    constexpr T one = 1;
+    constexpr T signbit = (one << 7) << (sizeof(T) - 1) * 8;
+    auto diff = lhs - rhs;
+    auto minusDiff = -diff;
+    constexpr auto shiftBack = sizeof(T) * 8 - 1;
+
+    return lhs * (diff >> shiftBack) + rhs * (minusDiff >> shiftBack);
 }
+
+inline float branchFloat(bool b) { return b ? 1.3f : 2.6f; }
 
 inline float indexFloat(bool b)
 {
@@ -31,15 +40,21 @@ inline float indexFloat(bool b)
     return vals[b];
 }
 
-inline int branchInt(bool b)
-{
-    return b ? 1 : 3;
-}
+inline int branchInt(bool b){ return b ? 1 : 3; }
 
 inline int indexInt(bool b)
 {
     constexpr float vals[] = { 3, 1 };
     return vals[b];
+}
+
+template<typename T>
+inline T fastArrayMin(const T (&vals)[2]) { return vals[vals[0] < vals[1]]; }
+
+template<typename T, size_t n>
+inline T fastArrayMin(const T (&vals)[n])
+{
+    
 }
 
 constexpr size_t dataSize = 1 << 24;
@@ -99,7 +114,11 @@ struct DataRunner
     Result result;
     Fun fun;
 
-    DataRunner(Fun&& f): fun(f) {}
+    DataRunner(Fun&& f):
+        fun(f)
+    {
+        randomiseBlock(data);
+    }
     
     void operator()()
     {
@@ -118,53 +137,61 @@ makeDataRunner(Fun&& fun)
     return DataRunner<Data, Result, Fun>(std::move(fun));
 }
 
-struct CallBranchFloat
-{
-    float operator()(const int*& i)
+auto branchRunner = makeDataRunner<int[dataSize], float[dataSize]>(
+    [](const int*& i)
     {
         int l = *i++;
         return branchFloat(l < *i++);
-    }
-};
+    });
 
-struct CallIndexFloat
-{
-    float operator()(const int*& i)
+auto indexRunner = makeDataRunner<int[dataSize], float[dataSize]>(
+    [](const int*& i)
     {
         int l = *i++;
         return indexFloat(l < *i++);
-    }
-};
+    });
 
-auto branchRunner = makeDataRunner<int[dataSize], float[dataSize]>(
-    CallBranchFloat());
-
-auto indexRunner = makeDataRunner<int[dataSize], float[dataSize]>(
-    CallIndexFloat());
-
-struct CallBranchInt
-{
-    float operator()(const int*& i)
+auto branchRunnerInt = makeDataRunner<int[dataSize], int[dataSize]>(
+    [](const int*& i)
     {
         int l = *i++;
         return branchInt(l < *i++);
-    }
-};
+    });
 
-struct CallIndexInt
-{
-    float operator()(const int*& i)
+auto indexRunnerInt = makeDataRunner<int[dataSize], int[dataSize]>(
+    [](const int*& i)
     {
         int l = *i++;
         return indexInt(l < *i++);
-    }
-};
+    });
 
-auto branchRunnerInt = makeDataRunner<int[dataSize], int[dataSize]>(
-    CallBranchInt());
+auto fastArrayRunnerInt = makeDataRunner<int[dataSize], int[dataSize]>(
+    [](const int*& i)
+    {
+        int result = fastArrayMin(reinterpret_cast<const int (&)[2]>(*i));
+        i += 2;
+        return result;
+    });
 
-auto indexRunnerInt = makeDataRunner<int[dataSize], int[dataSize]>(
-    CallIndexInt());
+auto stdMinRunnerInt = makeDataRunner<int[dataSize], int[dataSize]>(
+    [](const int*& i){
+        int tmp = *i++;
+        return std::min(tmp, *i++);
+    });
+
+auto fastArrayRunner = makeDataRunner<float[dataSize], float[dataSize]>(
+    [](const float*& i)
+    {
+        float result = fastArrayMin(reinterpret_cast<const float (&)[2]>(*i));
+        i += 2;
+        return result;
+    });
+
+auto stdMinRunner = makeDataRunner<float[dataSize], float[dataSize]>(
+    [](const float*& i){
+        float tmp = *i++;
+        return std::min(tmp, *i++);
+    });
 
 int
 main()
@@ -179,6 +206,7 @@ main()
 
     std::cout << "Minimum measurable time: "
               << duration_cast<nanoseconds>(tickSize).count()
+              << "ns"
               << std::endl;
     
     L3::ScopedTimer<>::duration elapsedTime{0};
@@ -189,17 +217,31 @@ main()
     }
     std::cout << "Time: init: "
               << duration_cast<microseconds>(elapsedTime).count()
+              << "us"
               << std::endl;
 
     RunTimer<> runner;
     int repeats = 100;
+    runner.run(stdMinRunner, fastArrayRunner, repeats);
+    std::cout << "std::min v fastArray" << std::endl;
+    std::cout << "average branch: " << runner.aTime.count() << "ms"
+              << std::endl;
+    std::cout << "average index: " << runner.bTime.count() << "ms"
+              << std::endl;
+    
     runner.run(branchRunner, indexRunner, repeats);
-    std::cout << "average A: " << runner.aTime.count() << "ms" << std::endl;
-    std::cout << "average B: " << runner.bTime.count() << "ms" << std::endl;
+    std::cout << "branch v index" << std::endl;
+    std::cout << "average branch: " << runner.aTime.count() << "ms"
+              << std::endl;
+    std::cout << "average index: " << runner.bTime.count() << "ms"
+              << std::endl;
 
     runner.run(branchRunnerInt, indexRunnerInt, repeats);
-    std::cout << "average A: " << runner.aTime.count() << "ms" << std::endl;
-    std::cout << "average B: " << runner.bTime.count() << "ms" << std::endl;
+    std::cout << "branchInt v indexInt" << std::endl;
+    std::cout << "average branch: " << runner.aTime.count() << "ms"
+              << std::endl;
+    std::cout << "average index: " << runner.bTime.count() << "ms"
+              << std::endl;
     
     runner.run(
         []()
@@ -220,9 +262,10 @@ main()
             }
         },
         repeats);
-        
-    std::cout << "average A: " << runner.aTime.count() << "ms" << std::endl;
-    std::cout << "average B: " << runner.bTime.count() << "ms" << std::endl;
+
+    std::cout << "branchFloat v indexFloat" << std::endl;
+    std::cout << "average branch: " << runner.aTime.count() << "ms" << std::endl;
+    std::cout << "average index: " << runner.bTime.count() << "ms" << std::endl;
 
     runner.run(
         [](){
@@ -244,6 +287,9 @@ main()
         },
         repeats);
         
-    std::cout << "average A: " << runner.aTime.count() << "ms" << std::endl;
-    std::cout << "average B: " << runner.bTime.count() << "ms" << std::endl;
+    std::cout << "indexInt v branchInt" << std::endl;
+    std::cout << "average index: " << runner.aTime.count() << "ms"
+              << std::endl;
+    std::cout << "average branch: " << runner.bTime.count() << "ms"
+              << std::endl;
 }
