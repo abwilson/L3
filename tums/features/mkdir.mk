@@ -1,0 +1,2 @@
+.SECONDEXPANSION:
+mkdir = $$(@D)/.

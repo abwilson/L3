@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:abwilson/tums.git
+	branch = master
+	commit = 859cfd62f2523b326d35568c8dad3492883b91ea
+	parent = 640b3e8ec44e2a53723fd2acbea18649204ac4dc
+	method = merge
+	cmdver = 0.4.0
