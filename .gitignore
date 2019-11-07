@@ -4,28 +4,8 @@ a.out
 *.d
 test_disruptor
 test_fifo
-
-examples/complex
-
-examples/simple
-
-examples/two_to_one_multi_put
-
-examples/two_to_one_selector
-
-test/test_latency
-
-test/test_putget
-
-test/test_selector
-
-test/test_logger
-
-test/min
+bld
 
 *.data
 
-test/test_flexififo
-
-./
 results

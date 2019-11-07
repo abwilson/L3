@@ -2,4 +2,4 @@
 
 CPPFLAGS = -Iinclude
 
-include $(wildcard */rules.mk)
+$(subdirs)
